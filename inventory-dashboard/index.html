@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Dashboard — Jon Harris</title>
+<style>
+  :root { --bg: #0a0a12; --card: #12121e; --accent: #6c63ff; --green: #00d4aa;
+          --red: #ff5252; --yellow: #ffc107; --text: #e0e0e0; --dim: #666; --border: #1e1e30; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  .layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { background: var(--card); border-right: 1px solid var(--border); padding: 20px 0; }
+  .logo { padding: 0 20px 20px; font-size: 18px; font-weight: 700; color: #fff;
+          border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .logo span { color: var(--accent); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px;
+              color: var(--dim); cursor: pointer; transition: all 0.2s; }
+  .nav-item:hover, .nav-item.active { color: #fff; background: rgba(108,99,255,0.1);
+                                       border-right: 3px solid var(--accent); }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* Main */
+  .main { padding: 24px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .top-bar h1 { font-size: 22px; color: #fff; }
+  .top-bar .date { color: var(--dim); font-size: 13px; }
+
+  /* Stat cards */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim);
+                margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 700; color: #fff; }
+  .stat-change { font-size: 12px; margin-top: 4px; }
+  .stat-change.up { color: var(--green); }
+  .stat-change.down { color: var(--red); }
+
+  /* Table */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+                overflow: hidden; }
+  .table-header { display: flex; justify-content: space-between; align-items: center;
+                  padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .table-header h3 { font-size: 15px; color: #fff; }
+  .search { background: #0a0a12; border: 1px solid var(--border); border-radius: 8px;
+            padding: 8px 14px; color: var(--text); font-size: 12px; width: 200px; }
+  .search:focus { outline: none; border-color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+       color: var(--dim); padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  tr:hover { background: rgba(108,99,255,0.04); }
+  .sku { font-family: monospace; color: var(--accent); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px;
+           font-weight: 600; }
+  .badge.in-stock { background: rgba(0,212,170,0.1); color: var(--green); }
+  .badge.low { background: rgba(255,193,7,0.1); color: var(--yellow); }
+  .badge.critical { background: rgba(255,82,82,0.1); color: var(--red); }
+  .badge.out { background: rgba(255,82,82,0.15); color: var(--red); }
+  .bar-cell { position: relative; }
+  .bar-bg { width: 100px; height: 6px; background: #1e1e30; border-radius: 3px; }
+  .bar-fill { height: 6px; border-radius: 3px; }
+
+  /* Charts area */
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+                padding: 20px; }
+  .chart-card h3 { font-size: 14px; color: #fff; margin-bottom: 16px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 1s ease; }
+  .bar-label { font-size: 10px; color: var(--dim); }
+  .activity-list { list-style: none; }
+  .activity-list li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+                      display: flex; gap: 10px; align-items: center; }
+  .activity-list li:last-child { border: none; }
+  .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .activity-time { color: var(--dim); font-size: 11px; margin-left: auto; white-space: nowrap; }
+
+  .footer { text-align: center; padding: 20px; color: var(--dim); font-size: 11px; }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .charts { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="logo">Ryno<span>Track</span></div>
+    <div class="nav-item active"><span class="icon">📊</span> Dashboard</div>
+    <div class="nav-item"><span class="icon">📦</span> Inventory</div>
+    <div class="nav-item"><span class="icon">🚚</span> Shipments</div>
+    <div class="nav-item"><span class="icon">📋</span> Orders</div>
+    <div class="nav-item"><span class="icon">👥</span> Suppliers</div>
+    <div class="nav-item"><span class="icon">📈</span> Reports</div>
+    <div class="nav-item"><span class="icon">⚙️</span> Settings</div>
+  </div>
+
+  <div class="main">
+    <div class="top-bar">
+      <h1>Inventory Dashboard</h1>
+      <div class="date" id="currentDate"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Total SKUs</div>
+        <div class="stat-value">1,247</div>
+        <div class="stat-change up">↑ 23 this week</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">In Stock</div>
+        <div class="stat-value">1,089</div>
+        <div class="stat-change up">↑ 87.3%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Low Stock Alerts</div>
+        <div class="stat-value" style="color: var(--yellow)">34</div>
+        <div class="stat-change down">↑ 6 from yesterday</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Shipments Today</div>
+        <div class="stat-value">18</div>
+        <div class="stat-change up">↑ 12% vs avg</div>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="chart-card">
+        <h3>Weekly Shipments</h3>
+        <div class="bar-chart" id="barChart"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Recent Activity</h3>
+        <ul class="activity-list">
+          <li><span class="activity-dot" style="background: var(--green)"></span>
+              <span>Received 240x hex bolts from FastenerCo</span>
+              <span class="activity-time">12 min ago</span></li>
+          <li><span class="activity-dot" style="background: var(--accent)"></span>
+              <span>Order #4821 shipped via Purolator</span>
+              <span class="activity-time">34 min ago</span></li>
+          <li><span class="activity-dot" style="background: var(--yellow)"></span>
+              <span>Low stock alert: 3/8" washers (14 remaining)</span>
+              <span class="activity-time">1 hr ago</span></li>
+          <li><span class="activity-dot" style="background: var(--green)"></span>
+              <span>PO #892 confirmed by supplier</span>
+              <span class="activity-time">2 hr ago</span></li>
+          <li><span class="activity-dot" style="background: var(--red)"></span>
+              <span>Stock out: silicone sealant 10oz</span>
+              <span class="activity-time">3 hr ago</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Inventory Items</h3>
+        <input type="text" class="search" placeholder="Search SKU or name..." oninput="filterTable(this.value)">
+      </div>
+      <table id="invTable">
+        <thead>
+          <tr><th>SKU</th><th>Item</th><th>Category</th><th>Qty</th><th>Status</th><th>Stock Level</th></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="footer">Built by Jon Harris — Inventory management with real warehouse experience</div>
+  </div>
+</div>
+
+<script>
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-CA', {
+  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+});
+
+const items = [
+  { sku: 'RW-1001', name: 'Hex Bolt M8x40', cat: 'Fasteners', qty: 2450, max: 3000 },
+  { sku: 'RW-1002', name: '3/8" Flat Washer', cat: 'Fasteners', qty: 14, max: 500 },
+  { sku: 'RW-1003', name: 'Purolator Air Filter PA4839', cat: 'Filters', qty: 89, max: 200 },
+  { sku: 'RW-1004', name: 'Silicone Sealant 10oz', cat: 'Adhesives', qty: 0, max: 100 },
+  { sku: 'RW-1005', name: 'Welding Rod 7018 1/8"', cat: 'Welding', qty: 340, max: 500 },
+  { sku: 'RW-1006', name: 'Safety Glasses Clear', cat: 'PPE', qty: 156, max: 200 },
+  { sku: 'RW-1007', name: 'Cut-Off Disc 4.5"', cat: 'Abrasives', qty: 23, max: 150 },
+  { sku: 'RW-1008', name: 'Hydraulic Oil ISO 46 20L', cat: 'Fluids', qty: 8, max: 30 },
+  { sku: 'RW-1009', name: 'Pallet Wrap 18" 80ga', cat: 'Shipping', qty: 45, max: 60 },
+  { sku: 'RW-1010', name: 'Forklift Propane Tank', cat: 'Equipment', qty: 6, max: 12 },
+  { sku: 'RW-1011', name: 'Cable Tie 12" Black', cat: 'Electrical', qty: 1200, max: 2000 },
+  { sku: 'RW-1012', name: 'Shop Towel Roll Blue', cat: 'Cleaning', qty: 3, max: 50 },
+];
+
+function getStatus(qty, max) {
+  const pct = qty / max;
+  if (qty === 0) return { label: 'Out of Stock', cls: 'out' };
+  if (pct <= 0.1) return { label: 'Critical', cls: 'critical' };
+  if (pct <= 0.25) return { label: 'Low Stock', cls: 'low' };
+  return { label: 'In Stock', cls: 'in-stock' };
+}
+
+function renderTable(filter = '') {
+  const tbody = document.getElementById('tableBody');
+  const filtered = items.filter(i =>
+    i.sku.toLowerCase().includes(filter) || i.name.toLowerCase().includes(filter)
+  );
+  tbody.innerHTML = filtered.map(i => {
+    const s = getStatus(i.qty, i.max);
+    const pct = Math.round((i.qty / i.max) * 100);
+    const color = s.cls === 'in-stock' ? 'var(--green)' : s.cls === 'low' ? 'var(--yellow)' : 'var(--red)';
+    return `<tr>
+      <td class="sku">${i.sku}</td>
+      <td>${i.name}</td>
+      <td>${i.cat}</td>
+      <td>${i.qty.toLocaleString()}</td>
+      <td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTable(val) { renderTable(val.toLowerCase()); }
+renderTable();
+
+// Bar chart
+const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const vals = [14,22,18,25,31,12,8];
+const maxV = Math.max(...vals);
+const chart = document.getElementById('barChart');
+chart.innerHTML = days.map((d,i) =>
+  `<div class="bar-col">
+    <div class="bar" style="height:${(vals[i]/maxV)*100}%;background:${i===4?'var(--accent)':'rgba(108,99,255,0.3)'}"></div>
+    <div class="bar-label">${d}</div>
+  </div>`
+).join('');
+</script>
+
+</body>
+</html>

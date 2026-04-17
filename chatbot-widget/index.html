@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Chatbot Widget — Jon Harris</title>
+<style>
+  :root { --bg: #f5f5f5; --card: #fff; --accent: #6c63ff; --text: #333; --dim: #777; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* Demo page behind the widget */
+  .demo-page { max-width: 800px; margin: 40px auto; padding: 20px; }
+  .demo-page h1 { font-size: 32px; margin-bottom: 12px; }
+  .demo-page p { color: var(--dim); line-height: 1.7; margin-bottom: 16px; }
+  .demo-box { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+              margin-bottom: 20px; }
+  .demo-box h2 { font-size: 18px; margin-bottom: 8px; }
+
+  /* Chat widget */
+  .chat-toggle { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px;
+                 border-radius: 50%; background: var(--accent); color: #fff; border: none;
+                 font-size: 26px; cursor: pointer; box-shadow: 0 4px 20px rgba(108,99,255,0.4);
+                 transition: all 0.3s; z-index: 1000; }
+  .chat-toggle:hover { transform: scale(1.1); }
+  .chat-toggle.open { border-radius: 12px; }
+
+  .chat-window { position: fixed; bottom: 96px; right: 24px; width: 380px; height: 520px;
+                 background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+                 display: none; flex-direction: column; overflow: hidden; z-index: 1000;
+                 border: 1px solid #e0e0e0; }
+  .chat-window.open { display: flex; }
+
+  .chat-header { background: linear-gradient(135deg, #6c63ff, #4a45b0); color: #fff;
+                 padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  .chat-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.2);
+                 display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .chat-header-text h4 { font-size: 14px; font-weight: 600; }
+  .chat-header-text span { font-size: 11px; opacity: 0.8; }
+  .chat-status { width: 8px; height: 8px; background: #00d4aa; border-radius: 50%;
+                 display: inline-block; margin-left: 4px; }
+
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column;
+                   gap: 10px; background: #fafafa; }
+  .msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5;
+         animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .msg.bot { background: #fff; border: 1px solid #eee; align-self: flex-start;
+             border-bottom-left-radius: 4px; }
+  .msg.user { background: var(--accent); color: #fff; align-self: flex-end;
+              border-bottom-right-radius: 4px; }
+  .msg.typing { color: var(--dim); font-style: italic; }
+
+  .chat-input { display: flex; padding: 12px; background: #fff; border-top: 1px solid #eee; gap: 8px; }
+  .chat-input input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px;
+                      font-size: 13px; outline: none; }
+  .chat-input input:focus { border-color: var(--accent); }
+  .chat-input button { width: 38px; height: 38px; border-radius: 50%; background: var(--accent);
+                       color: #fff; border: none; cursor: pointer; font-size: 16px; }
+  .chat-input button:hover { background: #5a52e0; }
+
+  .quick-replies { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .quick-reply { background: #f0eeff; color: var(--accent); border: 1px solid #ddd; border-radius: 16px;
+                 padding: 5px 12px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+  .quick-reply:hover { background: var(--accent); color: #fff; }
+
+  .powered { text-align: center; padding: 6px; font-size: 10px; color: #bbb; background: #fff; }
+</style>
+</head>
+<body>
+
+<!-- Demo website behind the widget -->
+<div class="demo-page">
+  <h1>Acme Business Solutions</h1>
+  <p>This is a demo website showing the AI chatbot widget embedded on a client's page.
+     Click the chat bubble in the bottom-right corner to interact with the assistant.</p>
+  <div class="demo-box">
+    <h2>About Our Services</h2>
+    <p>We provide enterprise solutions for growing businesses. Our AI-powered tools help you
+       automate workflows, manage inventory, and streamline operations.</p>
+  </div>
+  <div class="demo-box">
+    <h2>How the Widget Works</h2>
+    <p>This embeddable chatbot widget connects to any LLM backend (Claude, GPT, Gemini, or self-hosted Ollama).
+       It includes conversation memory, quick reply buttons, typing indicators, and full customization of
+       brand colors, avatar, and personality. One line of JavaScript to embed on any website.</p>
+  </div>
+  <div class="demo-box">
+    <h2>Features</h2>
+    <p>Custom personality prompts / Multi-provider LLM support / Typing animation /
+       Quick reply suggestions / Mobile responsive / Brand color customization /
+       Conversation history / One-line embed code</p>
+  </div>
+</div>
+
+<!-- Chat toggle button -->
+<button class="chat-toggle" id="chatToggle" onclick="toggleChat()">💬</button>
+
+<!-- Chat window -->
+<div class="chat-window" id="chatWindow">
+  <div class="chat-header">
+    <div class="chat-avatar">🤖</div>
+    <div class="chat-header-text">
+      <h4>Acme Assistant <span class="chat-status"></span></h4>
+      <span>Powered by AI — always online</span>
+    </div>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="msg bot">
+      Hi! I'm the Acme assistant. I can help you with our services, pricing, and support. What can I help you with today?
+      <div class="quick-replies">
+        <span class="quick-reply" onclick="sendQuick('What services do you offer?')">Services</span>
+        <span class="quick-reply" onclick="sendQuick('How much does it cost?')">Pricing</span>
+        <span class="quick-reply" onclick="sendQuick('I need technical support')">Support</span>
+      </div>
+    </div>
+  </div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendMsg()">
+    <button onclick="sendMsg()">➤</button>
+  </div>
+  <div class="powered">Built by Jon Harris — jonharris.dev</div>
+</div>
+
+<script>
+const responses = {
+  'services': 'We offer three main solutions:\n\n1. **Inventory Management** — AI-powered stock tracking\n2. **Workflow Automation** — Connect your tools with smart triggers\n3. **Custom AI Agents** — Built-to-order intelligent assistants\n\nWhich interests you most?',
+  'pricing': 'Our plans start at $49/month for small teams:\n\n• **Starter** — $49/mo (up to 5 users)\n• **Growth** — $149/mo (up to 25 users)\n• **Enterprise** — Custom pricing\n\nAll plans include a 14-day free trial. Want me to help you pick the right one?',
+  'support': 'I can help with common issues! What are you experiencing?\n\n• Account access problems\n• Integration setup\n• Billing questions\n• Bug reports\n\nOr describe your issue and I\'ll route you to the right team.',
+  'demo': 'I\'d love to set up a demo! We offer 30-minute walkthroughs customized to your industry. What\'s the best email to reach you at?',
+  'hours': 'I\'m available 24/7! For human support, our team is online Monday–Friday, 9am–6pm EST. But I can handle most questions right now.',
+  'default': null
+};
+
+const fallbacks = [
+  'That\'s a great question! Let me connect you with our team for a detailed answer. In the meantime, is there anything else I can help with?',
+  'I want to make sure I give you the right information on that. Can you tell me a bit more about what you\'re looking for?',
+  'I appreciate you asking! That\'s something our specialists handle best. Want me to schedule a quick call with them?',
+  'Interesting question! While I don\'t have specifics on that, I can help with our services, pricing, or support. What sounds useful?'
+];
+
+function toggleChat() {
+  const w = document.getElementById('chatWindow');
+  const b = document.getElementById('chatToggle');
+  w.classList.toggle('open');
+  b.textContent = w.classList.contains('open') ? '✕' : '💬';
+}
+
+function addMsg(text, type) {
+  const div = document.createElement('div');
+  div.className = `msg ${type}`;
+  div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  document.getElementById('chatMessages').appendChild(div);
+  document.getElementById('chatMessages').scrollTop = 99999;
+  return div;
+}
+
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendMsg();
+}
+
+function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  addMsg(text, 'user');
+
+  // Show typing
+  const typing = addMsg('Typing...', 'bot typing');
+
+  setTimeout(() => {
+    typing.remove();
+    const lower = text.toLowerCase();
+    let reply;
+    if (lower.includes('service') || lower.includes('offer') || lower.includes('what do you')) {
+      reply = responses.services;
+    } else if (lower.includes('price') || lower.includes('cost') || lower.includes('plan')) {
+      reply = responses.pricing;
+    } else if (lower.includes('support') || lower.includes('help') || lower.includes('issue') || lower.includes('problem')) {
+      reply = responses.support;
+    } else if (lower.includes('demo') || lower.includes('trial') || lower.includes('try')) {
+      reply = responses.demo;
+    } else if (lower.includes('hour') || lower.includes('available') || lower.includes('open')) {
+      reply = responses.hours;
+    } else if (lower.includes('hi') || lower.includes('hello') || lower.includes('hey')) {
+      reply = 'Hello! Welcome to Acme. How can I help you today? I can tell you about our services, pricing, or help with support.';
+    } else if (lower.includes('thank')) {
+      reply = 'You\'re welcome! Is there anything else I can help you with?';
+    } else {
+      reply = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    }
+    addMsg(reply, 'bot');
+  }, 800 + Math.random() * 600);
+}
+</script>
+
+</body>
+</html>

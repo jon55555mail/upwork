@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Report Generator — Jon Harris</title>
+<style>
+  :root { --bg: #0f0f0f; --card: #1a1a2e; --accent: #00d4aa; --purple: #6c63ff;
+          --text: #e0e0e0; --dim: #666; --border: #2a2a3e; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  .header { background: linear-gradient(135deg, #0d1b2a, #1b2838); padding: 30px; text-align: center;
+            border-bottom: 1px solid var(--border); }
+  .header h1 { font-size: 26px; color: #fff; margin-bottom: 4px; }
+  .header p { color: var(--dim); font-size: 13px; }
+  .container { max-width: 1000px; margin: 24px auto; padding: 0 20px; }
+  .config { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .field { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .field label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent);
+                 display: block; margin-bottom: 8px; }
+  select, input[type=text] { width: 100%; background: #0d0d1a; border: 1px solid var(--border);
+             border-radius: 6px; padding: 10px; color: var(--text); font-size: 13px; }
+  select:focus, input:focus { outline: none; border-color: var(--accent); }
+  .btn { display: block; width: 100%; padding: 14px; background: var(--accent); color: #000;
+         border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer;
+         margin-bottom: 24px; transition: all 0.2s; }
+  .btn:hover { background: #00b894; }
+  .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+  /* Progress */
+  .progress { display: none; margin-bottom: 20px; }
+  .progress.show { display: block; }
+  .progress-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+                   padding: 20px; }
+  .steps { list-style: none; }
+  .steps li { padding: 8px 0; font-size: 13px; display: flex; align-items: center; gap: 10px;
+              color: var(--dim); }
+  .steps li.done { color: var(--accent); }
+  .steps li.active { color: #fff; }
+  .step-icon { width: 20px; text-align: center; }
+  .progress-bar { height: 4px; background: #1e1e30; border-radius: 2px; margin-top: 16px; overflow: hidden; }
+  .progress-fill { height: 4px; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
+
+  /* Report */
+  .report { display: none; }
+  .report.show { display: block; }
+  .report-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+                 padding: 24px; margin-bottom: 16px; }
+  .report-card h2 { font-size: 18px; color: #fff; margin-bottom: 4px; }
+  .report-card .sub { color: var(--dim); font-size: 12px; margin-bottom: 16px; }
+  .report-section { margin-bottom: 20px; }
+  .report-section h3 { font-size: 14px; color: var(--accent); margin-bottom: 8px;
+                       text-transform: uppercase; letter-spacing: 1px; }
+  .report-section p { font-size: 13px; line-height: 1.7; color: #bbb; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .metric { background: #0d0d1a; border-radius: 8px; padding: 14px; text-align: center; }
+  .metric-val { font-size: 24px; font-weight: 700; color: #fff; }
+  .metric-label { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .findings { list-style: none; }
+  .findings li { padding: 8px 12px; border-left: 3px solid var(--accent); margin-bottom: 6px;
+                 background: rgba(0,212,170,0.04); border-radius: 0 6px 6px 0; font-size: 13px; line-height: 1.6; }
+  .dl-btn { display: inline-block; padding: 10px 24px; background: var(--purple); color: #fff;
+            border: none; border-radius: 8px; cursor: pointer; font-size: 13px; margin-right: 8px;
+            text-decoration: none; }
+  .dl-btn:hover { background: #5a52e0; }
+  .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AI Report Generator</h1>
+  <p>Select a data source and report type — AI generates a formatted, actionable report in seconds</p>
+</div>
+
+<div class="container">
+  <div class="config">
+    <div class="field">
+      <label>Data Source</label>
+      <select id="source">
+        <option value="inventory">Inventory Snapshot</option>
+        <option value="sales">Sales Data (Q1 2026)</option>
+        <option value="shipping">Shipping & Logistics</option>
+        <option value="custom">Custom CSV Upload</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Report Type</label>
+      <select id="type">
+        <option value="executive">Executive Summary</option>
+        <option value="detailed">Detailed Analysis</option>
+        <option value="action">Action Items Only</option>
+        <option value="trend">Trend Report</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>AI Model</label>
+      <select id="model">
+        <option value="claude">Claude Sonnet</option>
+        <option value="gpt4">GPT-4o</option>
+        <option value="gemini">Gemini 2.5 Flash</option>
+        <option value="local">Local (Ollama)</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn" onclick="generate()">Generate Report</button>
+
+  <div class="progress" id="progress">
+    <div class="progress-card">
+      <ul class="steps" id="steps">
+        <li id="s1"><span class="step-icon">○</span> Connecting to data source...</li>
+        <li id="s2"><span class="step-icon">○</span> Parsing and validating records...</li>
+        <li id="s3"><span class="step-icon">○</span> Running AI analysis...</li>
+        <li id="s4"><span class="step-icon">○</span> Generating insights and recommendations...</li>
+        <li id="s5"><span class="step-icon">○</span> Formatting report...</li>
+      </ul>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+  </div>
+
+  <div class="report" id="report">
+    <div class="report-card">
+      <h2 id="reportTitle">Inventory Executive Summary</h2>
+      <div class="sub" id="reportSub">Generated April 17, 2026 · Claude Sonnet · 1,247 records analyzed</div>
+
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-val" style="color: var(--accent)">1,089</div><div class="metric-label">Items In Stock</div></div>
+        <div class="metric"><div class="metric-val" style="color: #ffc107">34</div><div class="metric-label">Low Stock Alerts</div></div>
+        <div class="metric"><div class="metric-val" style="color: #ff5252">7</div><div class="metric-label">Out of Stock</div></div>
+      </div>
+
+      <div class="report-section">
+        <h3>Executive Overview</h3>
+        <p>Overall inventory health is at 87.3%, up 2.1 percentage points from last month. The fasteners category represents 42% of total SKU count and maintains the highest turnover rate. Seven items are currently out of stock, with three classified as critical to ongoing production orders. Recommended action: expedite PO #904 and PO #911 to restore critical stock within 48 hours.</p>
+      </div>
+
+      <div class="report-section">
+        <h3>Key Findings</h3>
+        <ul class="findings">
+          <li><strong>Reorder Point Optimization:</strong> 12 items are consistently reordered late — adjusting safety stock levels by +15% would eliminate 89% of stockout events</li>
+          <li><strong>Supplier Concentration Risk:</strong> 63% of fastener inventory comes from a single supplier (FastenerCo). Recommend qualifying a second source</li>
+          <li><strong>Dead Stock:</strong> 23 SKUs have not moved in 90+ days, representing $4,200 in tied-up capital. Consider clearance pricing or return to vendor</li>
+          <li><strong>Seasonal Pattern:</strong> Welding consumables spike 40% in Q1 — current stock will not cover projected March demand at current reorder cadence</li>
+          <li><strong>Shipping Efficiency:</strong> Purolator is averaging 2.3 days faster than Canada Post for comparable routes at only 8% higher cost — recommend shifting 70% of shipments</li>
+        </ul>
+      </div>
+
+      <div class="report-section">
+        <h3>Recommended Actions</h3>
+        <ul class="findings">
+          <li><strong>Immediate:</strong> Expedite silicone sealant and shop towels — both are production-blocking</li>
+          <li><strong>This Week:</strong> Review and adjust reorder points for 12 identified SKUs</li>
+          <li><strong>This Month:</strong> Qualify secondary fastener supplier, begin dead stock clearance</li>
+          <li><strong>Strategic:</strong> Implement automated reorder triggers at safety stock threshold</li>
+        </ul>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <button class="dl-btn" onclick="alert('PDF export would connect to backend')">Download PDF</button>
+        <button class="dl-btn" onclick="alert('CSV export would connect to backend')">Export CSV</button>
+        <button class="dl-btn" onclick="alert('Email would connect to backend')">Email Report</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Built by Jon Harris — AI-powered business reporting</div>
+
+<script>
+function generate() {
+  const prog = document.getElementById('progress');
+  const report = document.getElementById('report');
+  prog.classList.add('show');
+  report.classList.remove('show');
+
+  const steps = ['s1','s2','s3','s4','s5'];
+  const fill = document.getElementById('progressFill');
+  let i = 0;
+
+  function next() {
+    if (i > 0) {
+      document.getElementById(steps[i-1]).classList.remove('active');
+      document.getElementById(steps[i-1]).classList.add('done');
+      document.getElementById(steps[i-1]).querySelector('.step-icon').textContent = '✓';
+    }
+    if (i < steps.length) {
+      document.getElementById(steps[i]).classList.add('active');
+      document.getElementById(steps[i]).querySelector('.step-icon').textContent = '◉';
+      fill.style.width = ((i+1)/steps.length*100)+'%';
+      i++;
+      setTimeout(next, 600 + Math.random()*400);
+    } else {
+      // Update report title based on selections
+      const src = document.getElementById('source').selectedOptions[0].text;
+      const typ = document.getElementById('type').selectedOptions[0].text;
+      const mdl = document.getElementById('model').selectedOptions[0].text;
+      document.getElementById('reportTitle').textContent = `${src} — ${typ}`;
+      document.getElementById('reportSub').textContent =
+        `Generated ${new Date().toLocaleDateString('en-CA', {year:'numeric',month:'long',day:'numeric'})} · ${mdl} · 1,247 records analyzed`;
+      report.classList.add('show');
+      prog.classList.remove('show');
+      // Reset steps
+      steps.forEach(s => {
+        const el = document.getElementById(s);
+        el.classList.remove('done','active');
+        el.querySelector('.step-icon').textContent = '○';
+      });
+    }
+  }
+  next();
+}
+</script>
+
+</body>
+</html>

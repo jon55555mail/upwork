@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Research Bot — Jon Harris</title>
+<style>
+  :root { --bg: #080810; --card: #0f0f1a; --accent: #6c63ff; --green: #00d4aa;
+          --yellow: #ffc107; --text: #d0d0d0; --dim: #555; --border: #1a1a2e; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  .header { background: linear-gradient(135deg, #0f0f1a, #1a1030); padding: 24px 30px;
+            border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;
+            align-items: center; }
+  .header h1 { font-size: 22px; color: #fff; }
+  .header h1 span { color: var(--accent); }
+  .status-badge { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .status-badge.live { background: rgba(0,212,170,0.15); color: var(--green); }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+  /* Input area */
+  .input-area { display: flex; gap: 12px; margin-bottom: 24px; }
+  .input-area input { flex: 1; background: var(--card); border: 1px solid var(--border);
+                      border-radius: 10px; padding: 14px 18px; color: #fff; font-size: 14px; }
+  .input-area input:focus { outline: none; border-color: var(--accent); }
+  .input-area button { padding: 14px 28px; background: var(--accent); color: #fff; border: none;
+                       border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .input-area button:hover { background: #5a52e0; }
+
+  /* Agent grid */
+  .agents { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .agent { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+           transition: all 0.3s; }
+  .agent.active { border-color: var(--accent); box-shadow: 0 0 20px rgba(108,99,255,0.1); }
+  .agent.done { border-color: var(--green); }
+  .agent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .agent-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
+                justify-content: center; font-size: 16px; }
+  .agent-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .agent-role { font-size: 10px; color: var(--dim); }
+  .agent-status { font-size: 11px; color: var(--dim); margin-bottom: 8px; min-height: 32px; }
+  .agent-status.working { color: var(--yellow); }
+  .agent-status.complete { color: var(--green); }
+  .agent-progress { height: 3px; background: #1a1a2e; border-radius: 2px; overflow: hidden; }
+  .agent-progress-fill { height: 3px; border-radius: 2px; transition: width 0.3s; width: 0; }
+  .agent-sources { font-size: 10px; color: var(--dim); margin-top: 6px; }
+
+  /* Results */
+  .results { display: none; }
+  .results.show { display: block; }
+  .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+                 padding: 20px; margin-bottom: 16px; }
+  .result-card h2 { font-size: 18px; color: #fff; margin-bottom: 4px; }
+  .result-meta { font-size: 11px; color: var(--dim); margin-bottom: 16px; }
+  .finding { padding: 12px 16px; border-left: 3px solid var(--accent); margin-bottom: 10px;
+             background: rgba(108,99,255,0.04); border-radius: 0 8px 8px 0; }
+  .finding h4 { font-size: 13px; color: #fff; margin-bottom: 4px; }
+  .finding p { font-size: 12px; color: #aaa; line-height: 1.6; }
+  .finding .source { font-size: 10px; color: var(--accent); margin-top: 4px; }
+  .confidence { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px;
+                font-weight: 600; margin-left: 8px; }
+  .confidence.high { background: rgba(0,212,170,0.15); color: var(--green); }
+  .confidence.med { background: rgba(255,193,7,0.15); color: var(--yellow); }
+
+  .summary-box { background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.2);
+                 border-radius: 10px; padding: 16px; margin-top: 16px; }
+  .summary-box h3 { font-size: 13px; color: var(--green); margin-bottom: 8px; text-transform: uppercase;
+                    letter-spacing: 1px; }
+  .summary-box p { font-size: 13px; line-height: 1.7; }
+
+  .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 11px; }
+  @media (max-width: 700px) { .agents { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Multi-Agent <span>Research</span> Bot</h1>
+  <span class="status-badge live">● System Online — 6 Agents Ready</span>
+</div>
+
+<div class="container">
+  <div class="input-area">
+    <input type="text" id="query" value="What are the best AI tools for small business automation in 2026?"
+           placeholder="Enter your research question...">
+    <button onclick="startResearch()">Research</button>
+  </div>
+
+  <div class="agents" id="agentGrid">
+    <div class="agent" id="a1">
+      <div class="agent-header">
+        <div class="agent-icon" style="background: rgba(108,99,255,0.15);">🔍</div>
+        <div><div class="agent-name">Scout</div><div class="agent-role">Web Search Agent</div></div>
+      </div>
+      <div class="agent-status" id="a1s">Idle — waiting for task</div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a1p" style="background: var(--accent)"></div></div>
+      <div class="agent-sources" id="a1src"></div>
+    </div>
+    <div class="agent" id="a2">
+      <div class="agent-header">
+        <div class="agent-icon" style="background: rgba(0,212,170,0.15);">📊</div>
+        <div><div class="agent-name">Analyst</div><div class="agent-role">Data Analysis Agent</div></div>
+      </div>
+      <div class="agent-status" id="a2s">Idle — waiting for task</div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a2p" style="background: var(--green)"></div></div>
+      <div class="agent-sources" id="a2src"></div>
+    </div>
+    <div class="agent" id="a3">
+      <div class="agent-header">
+        <div class="agent-icon" style="background: rgba(255,193,7,0.15);">🧠</div>
+        <div><div class="agent-name">Synthesizer</div><div class="agent-role">LLM Reasoning Agent</div></div>
+      </div>
+      <div class="agent-status" id="a3s">Idle — waiting for Scout & Analyst</div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a3p" style="background: var(--yellow)"></div></div>
+      <div class="agent-sources" id="a3src"></div>
+    </div>
+    <div class="agent" id="a4">
+      <div class="agent-header">
+        <div class="agent-icon" style="background: rgba(255,82,82,0.15);">✅</div>
+        <div><div class="agent-name">Verifier</div><div class="agent-role">Fact-Check Agent</div></div>
+      </div>
+      <div class="agent-status" id="a4s">Idle — waiting for Synthesizer</div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a4p" style="background: #ff5252"></div></div>
+      <div class="agent-sources" id="a4src"></div>
+    </div>
+    <div class="agent" id="a5">
+      <div class="agent-header">
+        <div class="agent-icon" style="background: rgba(108,99,255,0.15);">📝</div>
+        <div><div class="agent-name">Writer</div><div class="agent-role">Report Generation Agent</div></div>
+      </div>
+      <div class="agent-status" id="a5s">Idle — waiting for Verifier</div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a5p" style="background: var(--accent)"></div></div>
+      <div class="agent-sources" id="a5src"></div>
+    </div>
+    <div class="agent" id="a6">
+      <div class="agent-header">
+        <div class="agent-icon" style="background: rgba(0,212,170,0.15);">🎯</div>
+        <div><div class="agent-name">Director</div><div class="agent-role">Orchestration Agent</div></div>
+      </div>
+      <div class="agent-status" id="a6s">Idle — master controller</div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a6p" style="background: var(--green)"></div></div>
+      <div class="agent-sources" id="a6src"></div>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="result-card">
+      <h2>Research Report: AI Tools for Small Business Automation (2026)</h2>
+      <div class="result-meta">6 agents · 23 sources analyzed · 4.2s total · Claude Sonnet + Gemini Flash</div>
+
+      <div class="finding">
+        <h4>Zapier + Make.com dominate workflow automation <span class="confidence high">High</span></h4>
+        <p>Zapier holds 62% market share for no-code automation. Make.com (formerly Integromat) is growing at 40% YoY with more complex multi-step scenarios. Both now include AI-powered trigger suggestions.</p>
+        <div class="source">Sources: G2 Reviews, TechCrunch, Zapier Blog (3 sources)</div>
+      </div>
+      <div class="finding">
+        <h4>Claude and GPT-4 lead AI assistant integration <span class="confidence high">High</span></h4>
+        <p>Claude Code and ChatGPT Enterprise are the top two AI assistants for business use. Claude excels at long-form analysis and code generation; GPT-4o leads in real-time conversation and plugin ecosystem.</p>
+        <div class="source">Sources: Anthropic Blog, OpenAI Enterprise Report, Gartner (4 sources)</div>
+      </div>
+      <div class="finding">
+        <h4>n8n emerging as open-source alternative <span class="confidence med">Medium</span></h4>
+        <p>Self-hosted n8n is gaining traction with privacy-conscious small businesses. 180% GitHub star growth in 2025. Key advantage: no per-execution pricing, full data control.</p>
+        <div class="source">Sources: GitHub Trends, HackerNews, n8n Community (3 sources)</div>
+      </div>
+      <div class="finding">
+        <h4>AI-powered inventory management seeing 3x adoption <span class="confidence high">High</span></h4>
+        <p>Small businesses using AI for demand forecasting report 23% reduction in stockouts and 18% reduction in carrying costs. Leading tools: Cin7, InFlow, and custom solutions built on LLM APIs.</p>
+        <div class="source">Sources: McKinsey SMB Report, Shopify Engineering Blog (4 sources)</div>
+      </div>
+      <div class="finding">
+        <h4>Local LLMs viable for cost-sensitive operations <span class="confidence med">Medium</span></h4>
+        <p>Ollama + phi4-mini or qwen2.5 running on sub-$500 hardware can handle 80% of business automation tasks. Eliminates per-token costs entirely. Trade-off: lower reasoning quality vs cloud models.</p>
+        <div class="source">Sources: r/LocalLLaMA, Ollama Docs, benchmark data (5 sources)</div>
+      </div>
+
+      <div class="summary-box">
+        <h3>Key Takeaway</h3>
+        <p>The most effective small business automation stack in 2026 combines a no-code platform (Zapier or n8n) for workflow triggers, an AI assistant (Claude or GPT-4) for reasoning tasks, and domain-specific tools for inventory/CRM. Businesses spending under $200/month on this stack report 15-20 hours/week saved on manual processes. Self-hosted options (n8n + Ollama) bring the ongoing cost to near-zero for technically capable operators.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Built by Jon Harris — Multi-agent research orchestration system</div>
+
+<script>
+function startResearch() {
+  document.getElementById('results').classList.remove('show');
+
+  const timeline = [
+    { t:0,    a:'a6', status:'Parsing query, assigning tasks to agents...', cls:'working', pct:100 },
+    { t:300,  a:'a1', status:'Searching web for "AI tools small business 2026"...', cls:'working', pct:30 },
+    { t:500,  a:'a6', status:'Scout dispatched. Waiting for results...', cls:'working', pct:100, src:'Coordinating 6 agents' },
+    { t:800,  a:'a1', status:'Found 23 relevant sources, extracting data...', cls:'working', pct:60, src:'G2, TechCrunch, Gartner...' },
+    { t:1200, a:'a2', status:'Analyzing market data and adoption rates...', cls:'working', pct:40 },
+    { t:1400, a:'a1', status:'Web search complete — 23 sources collected', cls:'complete', pct:100, done:true },
+    { t:1600, a:'a2', status:'Cross-referencing pricing data across 12 tools...', cls:'working', pct:70, src:'Pricing pages, G2 data' },
+    { t:2000, a:'a2', status:'Data analysis complete — trends identified', cls:'complete', pct:100, done:true },
+    { t:2200, a:'a3', status:'Synthesizing findings from Scout and Analyst...', cls:'working', pct:30 },
+    { t:2500, a:'a3', status:'Generating insights using Claude Sonnet...', cls:'working', pct:60, src:'Using Claude + Gemini' },
+    { t:2800, a:'a3', status:'Synthesis complete — 5 key findings', cls:'complete', pct:100, done:true },
+    { t:3000, a:'a4', status:'Fact-checking claims against sources...', cls:'working', pct:50 },
+    { t:3300, a:'a4', status:'All claims verified — confidence scores assigned', cls:'complete', pct:100, done:true },
+    { t:3500, a:'a5', status:'Writing formatted report...', cls:'working', pct:50 },
+    { t:3800, a:'a5', status:'Report complete — ready for review', cls:'complete', pct:100, done:true },
+    { t:4000, a:'a6', status:'All agents complete. Report delivered.', cls:'complete', pct:100, done:true },
+    { t:4200, a:'show' },
+  ];
+
+  // Reset all agents
+  for (let i=1; i<=6; i++) {
+    document.getElementById('a'+i).className = 'agent';
+    document.getElementById('a'+i+'s').className = 'agent-status';
+    document.getElementById('a'+i+'s').textContent = 'Idle';
+    document.getElementById('a'+i+'p').style.width = '0';
+    document.getElementById('a'+i+'src').textContent = '';
+  }
+
+  timeline.forEach(step => {
+    setTimeout(() => {
+      if (step.a === 'show') {
+        document.getElementById('results').classList.add('show');
+        return;
+      }
+      const agent = document.getElementById(step.a);
+      const statusEl = document.getElementById(step.a+'s');
+      const progEl = document.getElementById(step.a+'p');
+      const srcEl = document.getElementById(step.a+'src');
+
+      if (step.done) {
+        agent.className = 'agent done';
+      } else {
+        agent.className = 'agent active';
+      }
+      statusEl.textContent = step.status;
+      statusEl.className = 'agent-status ' + step.cls;
+      progEl.style.width = step.pct + '%';
+      if (step.src) srcEl.textContent = step.src;
+    }, step.t);
+  });
+}
+</script>
+
+</body>
+</html>

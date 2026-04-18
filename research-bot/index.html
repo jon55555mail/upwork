@@ -5,81 +5,167 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Multi-Agent Research Bot — Jon Harris</title>
 <style>
-  :root { --bg: #080810; --card: #0f0f1a; --accent: #6c63ff; --green: #00d4aa;
-          --yellow: #ffc107; --text: #d0d0d0; --dim: #555; --border: #1a1a2e; }
+  :root { --bg: #080810; --card: #0f0f1a; --surface: #161630; --accent: #6c63ff; --green: #00d4aa;
+          --yellow: #ffc107; --red: #ff5252; --blue: #4facfe; --orange: #ff8c42; --pink: #e84393;
+          --text: #d0d0d0; --dim: #555; --border: #1a1a2e; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  .header { background: linear-gradient(135deg, #0f0f1a, #1a1030); padding: 24px 30px;
-            border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;
-            align-items: center; }
+
+  .header { background: linear-gradient(135deg, #0f0f1a 0%, #1a1030 50%, #0a1628 100%);
+            padding: 24px 30px; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; top: -60%; right: -8%; width: 300px; height: 300px;
+                    background: radial-gradient(circle, rgba(108,99,255,0.12), transparent 70%); }
+  .header-top { display: flex; justify-content: space-between; align-items: center; }
   .header h1 { font-size: 22px; color: #fff; }
   .header h1 span { color: var(--accent); }
-  .status-badge { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .status-badge.live { background: rgba(0,212,170,0.15); color: var(--green); }
+  .status-badge { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600;
+                  background: rgba(0,212,170,0.15); color: var(--green); }
+  .header-badges { display: flex; gap: 8px; margin-top: 10px; }
+  .h-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
+             background: rgba(108,99,255,0.1); color: var(--accent); border: 1px solid rgba(108,99,255,0.2); }
+
+  .tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); padding: 0 20px; }
+  .tab { padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--dim); cursor: pointer;
+         border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 
   .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
 
-  /* Input area */
-  .input-area { display: flex; gap: 12px; margin-bottom: 24px; }
+  /* Input */
+  .input-area { display: flex; gap: 12px; margin-bottom: 20px; }
   .input-area input { flex: 1; background: var(--card); border: 1px solid var(--border);
                       border-radius: 10px; padding: 14px 18px; color: #fff; font-size: 14px; }
   .input-area input:focus { outline: none; border-color: var(--accent); }
-  .input-area button { padding: 14px 28px; background: var(--accent); color: #fff; border: none;
-                       border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .input-area button:hover { background: #5a52e0; }
+  .input-area button { padding: 14px 28px; background: linear-gradient(135deg, var(--accent), #5a52e0);
+                       color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+                       cursor: pointer; transition: all 0.2s; }
+  .input-area button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,0.3); }
+
+  /* Config row */
+  .config-row { display: flex; gap: 12px; margin-bottom: 20px; }
+  .config-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+                 padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+  .config-item label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
+  .config-item select { background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+                        padding: 4px 8px; color: var(--text); font-size: 12px; }
 
   /* Agent grid */
-  .agents { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .agents { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
   .agent { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
-           transition: all 0.3s; }
+           transition: all 0.3s; position: relative; overflow: hidden; }
+  .agent::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .agent:nth-child(1)::before { background: var(--accent); }
+  .agent:nth-child(2)::before { background: var(--green); }
+  .agent:nth-child(3)::before { background: var(--yellow); }
+  .agent:nth-child(4)::before { background: var(--red); }
+  .agent:nth-child(5)::before { background: var(--blue); }
+  .agent:nth-child(6)::before { background: var(--pink); }
   .agent.active { border-color: var(--accent); box-shadow: 0 0 20px rgba(108,99,255,0.1); }
   .agent.done { border-color: var(--green); }
   .agent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .agent-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
-                justify-content: center; font-size: 16px; }
-  .agent-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .agent-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
+                justify-content: center; font-size: 18px; }
+  .agent-name { font-size: 14px; font-weight: 600; color: #fff; }
   .agent-role { font-size: 10px; color: var(--dim); }
   .agent-status { font-size: 11px; color: var(--dim); margin-bottom: 8px; min-height: 32px; }
   .agent-status.working { color: var(--yellow); }
   .agent-status.complete { color: var(--green); }
-  .agent-progress { height: 3px; background: #1a1a2e; border-radius: 2px; overflow: hidden; }
-  .agent-progress-fill { height: 3px; border-radius: 2px; transition: width 0.3s; width: 0; }
-  .agent-sources { font-size: 10px; color: var(--dim); margin-top: 6px; }
+  .agent-progress { height: 4px; background: #1a1a2e; border-radius: 2px; overflow: hidden; }
+  .agent-progress-fill { height: 4px; border-radius: 2px; transition: width 0.3s; width: 0; }
+  .agent-sources { font-size: 10px; color: var(--dim); margin-top: 8px; }
+  .agent-model { font-size: 9px; color: var(--dim); margin-top: 4px; font-family: monospace;
+                 background: var(--surface); padding: 2px 6px; border-radius: 4px; display: inline-block; }
 
   /* Results */
   .results { display: none; }
   .results.show { display: block; }
+  .result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .r-stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+            padding: 14px; text-align: center; }
+  .r-stat .val { font-size: 22px; font-weight: 700; color: #fff; }
+  .r-stat .lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
   .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
                  padding: 20px; margin-bottom: 16px; }
   .result-card h2 { font-size: 18px; color: #fff; margin-bottom: 4px; }
   .result-meta { font-size: 11px; color: var(--dim); margin-bottom: 16px; }
-  .finding { padding: 12px 16px; border-left: 3px solid var(--accent); margin-bottom: 10px;
-             background: rgba(108,99,255,0.04); border-radius: 0 8px 8px 0; }
-  .finding h4 { font-size: 13px; color: #fff; margin-bottom: 4px; }
-  .finding p { font-size: 12px; color: #aaa; line-height: 1.6; }
-  .finding .source { font-size: 10px; color: var(--accent); margin-top: 4px; }
-  .confidence { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px;
-                font-weight: 600; margin-left: 8px; }
+  .finding { padding: 14px 16px; border-left: 3px solid; margin-bottom: 10px;
+             background: var(--surface); border-radius: 0 10px 10px 0; }
+  .finding:nth-child(1) { border-left-color: var(--accent); }
+  .finding:nth-child(2) { border-left-color: var(--green); }
+  .finding:nth-child(3) { border-left-color: var(--yellow); }
+  .finding:nth-child(4) { border-left-color: var(--blue); }
+  .finding:nth-child(5) { border-left-color: var(--orange); }
+  .finding h4 { font-size: 13px; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .finding p { font-size: 12px; color: #aaa; line-height: 1.7; }
+  .finding .source { font-size: 10px; color: var(--accent); margin-top: 6px; }
+  .confidence { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .confidence.high { background: rgba(0,212,170,0.15); color: var(--green); }
   .confidence.med { background: rgba(255,193,7,0.15); color: var(--yellow); }
 
   .summary-box { background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.2);
-                 border-radius: 10px; padding: 16px; margin-top: 16px; }
-  .summary-box h3 { font-size: 13px; color: var(--green); margin-bottom: 8px; text-transform: uppercase;
-                    letter-spacing: 1px; }
-  .summary-box p { font-size: 13px; line-height: 1.7; }
+                 border-radius: 10px; padding: 18px; margin-top: 16px; }
+  .summary-box h3 { font-size: 12px; color: var(--green); margin-bottom: 10px; text-transform: uppercase;
+                    letter-spacing: 1.5px; }
+  .summary-box p { font-size: 13px; line-height: 1.8; }
+
+  /* Architecture Tab */
+  .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .arch-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .arch-card h3 { font-size: 14px; color: #fff; margin-bottom: 14px; }
+  .flow-step { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; }
+  .flow-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+              justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .flow-text h4 { font-size: 13px; color: #fff; }
+  .flow-text p { font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .tech-list { list-style: none; }
+  .tech-list li { display: flex; justify-content: space-between; padding: 10px 0;
+                  border-bottom: 1px solid var(--border); font-size: 13px; }
+  .tech-list li:last-child { border: none; }
+  .tech-tag { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+
+  /* History Tab */
+  .query-list { list-style: none; }
+  .query-list li { display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+                   background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+                   margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+  .query-list li:hover { border-color: var(--accent); }
+  .q-icon { font-size: 20px; }
+  .q-info { flex: 1; }
+  .q-title { font-size: 13px; font-weight: 600; color: #fff; }
+  .q-meta { font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .q-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
 
   .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 11px; }
-  @media (max-width: 700px) { .agents { grid-template-columns: 1fr; } }
+  @media (max-width: 700px) { .agents { grid-template-columns: 1fr; } .arch-grid { grid-template-columns: 1fr; }
+    .result-stats { grid-template-columns: repeat(2,1fr); } }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Multi-Agent <span>Research</span> Bot</h1>
-  <span class="status-badge live">● System Online — 6 Agents Ready</span>
+  <div class="header-top">
+    <h1>Multi-Agent <span>Research</span> Bot</h1>
+    <span class="status-badge">● System Online — 6 Agents Ready</span>
+  </div>
+  <div class="header-badges">
+    <span class="h-badge">6 Specialized Agents</span>
+    <span class="h-badge">Multi-Model (Claude + Gemini)</span>
+    <span class="h-badge">Source Verification</span>
+    <span class="h-badge">Confidence Scoring</span>
+  </div>
 </div>
 
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('research')">Research</div>
+  <div class="tab" onclick="switchTab('architecture')">Architecture</div>
+  <div class="tab" onclick="switchTab('history')">History</div>
+</div>
+
+<!-- RESEARCH TAB -->
+<div class="tab-panel active" id="panel-research">
 <div class="container">
   <div class="input-area">
     <input type="text" id="query" value="What are the best AI tools for small business automation in 2026?"
@@ -87,71 +173,91 @@
     <button onclick="startResearch()">Research</button>
   </div>
 
+  <div class="config-row">
+    <div class="config-item"><label>Depth</label><select><option>Standard</option><option>Deep Dive</option><option>Quick Scan</option></select></div>
+    <div class="config-item"><label>Sources</label><select><option>All Sources</option><option>Academic Only</option><option>News Only</option><option>Technical</option></select></div>
+    <div class="config-item"><label>Primary Model</label><select><option>Claude Sonnet</option><option>GPT-4o</option><option>Gemini Flash</option></select></div>
+    <div class="config-item"><label>Max Sources</label><select><option>25</option><option>50</option><option>100</option></select></div>
+  </div>
+
   <div class="agents" id="agentGrid">
     <div class="agent" id="a1">
       <div class="agent-header">
-        <div class="agent-icon" style="background: rgba(108,99,255,0.15);">🔍</div>
+        <div class="agent-icon" style="background:rgba(108,99,255,0.15);">🔍</div>
         <div><div class="agent-name">Scout</div><div class="agent-role">Web Search Agent</div></div>
       </div>
       <div class="agent-status" id="a1s">Idle — waiting for task</div>
-      <div class="agent-progress"><div class="agent-progress-fill" id="a1p" style="background: var(--accent)"></div></div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a1p" style="background:var(--accent)"></div></div>
       <div class="agent-sources" id="a1src"></div>
+      <div class="agent-model">model: gemini-2.5-flash</div>
     </div>
     <div class="agent" id="a2">
       <div class="agent-header">
-        <div class="agent-icon" style="background: rgba(0,212,170,0.15);">📊</div>
+        <div class="agent-icon" style="background:rgba(0,212,170,0.15);">📊</div>
         <div><div class="agent-name">Analyst</div><div class="agent-role">Data Analysis Agent</div></div>
       </div>
       <div class="agent-status" id="a2s">Idle — waiting for task</div>
-      <div class="agent-progress"><div class="agent-progress-fill" id="a2p" style="background: var(--green)"></div></div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a2p" style="background:var(--green)"></div></div>
       <div class="agent-sources" id="a2src"></div>
+      <div class="agent-model">model: claude-sonnet</div>
     </div>
     <div class="agent" id="a3">
       <div class="agent-header">
-        <div class="agent-icon" style="background: rgba(255,193,7,0.15);">🧠</div>
+        <div class="agent-icon" style="background:rgba(255,193,7,0.15);">🧠</div>
         <div><div class="agent-name">Synthesizer</div><div class="agent-role">LLM Reasoning Agent</div></div>
       </div>
       <div class="agent-status" id="a3s">Idle — waiting for Scout & Analyst</div>
-      <div class="agent-progress"><div class="agent-progress-fill" id="a3p" style="background: var(--yellow)"></div></div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a3p" style="background:var(--yellow)"></div></div>
       <div class="agent-sources" id="a3src"></div>
+      <div class="agent-model">model: claude-sonnet</div>
     </div>
     <div class="agent" id="a4">
       <div class="agent-header">
-        <div class="agent-icon" style="background: rgba(255,82,82,0.15);">✅</div>
+        <div class="agent-icon" style="background:rgba(255,82,82,0.15);">✅</div>
         <div><div class="agent-name">Verifier</div><div class="agent-role">Fact-Check Agent</div></div>
       </div>
       <div class="agent-status" id="a4s">Idle — waiting for Synthesizer</div>
-      <div class="agent-progress"><div class="agent-progress-fill" id="a4p" style="background: #ff5252"></div></div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a4p" style="background:var(--red)"></div></div>
       <div class="agent-sources" id="a4src"></div>
+      <div class="agent-model">model: gemini-2.5-flash</div>
     </div>
     <div class="agent" id="a5">
       <div class="agent-header">
-        <div class="agent-icon" style="background: rgba(108,99,255,0.15);">📝</div>
+        <div class="agent-icon" style="background:rgba(79,172,254,0.15);">📝</div>
         <div><div class="agent-name">Writer</div><div class="agent-role">Report Generation Agent</div></div>
       </div>
       <div class="agent-status" id="a5s">Idle — waiting for Verifier</div>
-      <div class="agent-progress"><div class="agent-progress-fill" id="a5p" style="background: var(--accent)"></div></div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a5p" style="background:var(--blue)"></div></div>
       <div class="agent-sources" id="a5src"></div>
+      <div class="agent-model">model: claude-sonnet</div>
     </div>
     <div class="agent" id="a6">
       <div class="agent-header">
-        <div class="agent-icon" style="background: rgba(0,212,170,0.15);">🎯</div>
+        <div class="agent-icon" style="background:rgba(232,67,147,0.15);">🎯</div>
         <div><div class="agent-name">Director</div><div class="agent-role">Orchestration Agent</div></div>
       </div>
       <div class="agent-status" id="a6s">Idle — master controller</div>
-      <div class="agent-progress"><div class="agent-progress-fill" id="a6p" style="background: var(--green)"></div></div>
+      <div class="agent-progress"><div class="agent-progress-fill" id="a6p" style="background:var(--pink)"></div></div>
       <div class="agent-sources" id="a6src"></div>
+      <div class="agent-model">model: claude-sonnet</div>
     </div>
   </div>
 
   <div class="results" id="results">
+    <div class="result-stats">
+      <div class="r-stat"><div class="val" style="color:var(--accent)">6</div><div class="lbl">Agents Used</div></div>
+      <div class="r-stat"><div class="val" style="color:var(--green)">23</div><div class="lbl">Sources Analyzed</div></div>
+      <div class="r-stat"><div class="val" style="color:var(--yellow)">4.2s</div><div class="lbl">Total Time</div></div>
+      <div class="r-stat"><div class="val" style="color:var(--blue)">5</div><div class="lbl">Key Findings</div></div>
+    </div>
+
     <div class="result-card">
       <h2>Research Report: AI Tools for Small Business Automation (2026)</h2>
       <div class="result-meta">6 agents · 23 sources analyzed · 4.2s total · Claude Sonnet + Gemini Flash</div>
 
       <div class="finding">
         <h4>Zapier + Make.com dominate workflow automation <span class="confidence high">High</span></h4>
-        <p>Zapier holds 62% market share for no-code automation. Make.com (formerly Integromat) is growing at 40% YoY with more complex multi-step scenarios. Both now include AI-powered trigger suggestions.</p>
+        <p>Zapier holds 62% market share for no-code automation. Make.com is growing at 40% YoY with more complex multi-step scenarios. Both now include AI-powered trigger suggestions.</p>
         <div class="source">Sources: G2 Reviews, TechCrunch, Zapier Blog (3 sources)</div>
       </div>
       <div class="finding">
@@ -171,28 +277,96 @@
       </div>
       <div class="finding">
         <h4>Local LLMs viable for cost-sensitive operations <span class="confidence med">Medium</span></h4>
-        <p>Ollama + phi4-mini or qwen2.5 running on sub-$500 hardware can handle 80% of business automation tasks. Eliminates per-token costs entirely. Trade-off: lower reasoning quality vs cloud models.</p>
+        <p>Ollama + phi4-mini running on sub-$500 hardware can handle 80% of business automation tasks. Eliminates per-token costs entirely. Trade-off: lower reasoning quality vs cloud models.</p>
         <div class="source">Sources: r/LocalLLaMA, Ollama Docs, benchmark data (5 sources)</div>
       </div>
 
       <div class="summary-box">
         <h3>Key Takeaway</h3>
-        <p>The most effective small business automation stack in 2026 combines a no-code platform (Zapier or n8n) for workflow triggers, an AI assistant (Claude or GPT-4) for reasoning tasks, and domain-specific tools for inventory/CRM. Businesses spending under $200/month on this stack report 15-20 hours/week saved on manual processes. Self-hosted options (n8n + Ollama) bring the ongoing cost to near-zero for technically capable operators.</p>
+        <p>The most effective small business automation stack in 2026 combines a no-code platform (Zapier or n8n) for workflow triggers, an AI assistant (Claude or GPT-4) for reasoning tasks, and domain-specific tools for inventory/CRM. Businesses spending under $200/month on this stack report 15-20 hours/week saved on manual processes.</p>
       </div>
     </div>
   </div>
 </div>
+</div>
 
-<div class="footer">Built by Jon Harris — Multi-agent research orchestration system</div>
+<!-- ARCHITECTURE TAB -->
+<div class="tab-panel" id="panel-architecture">
+<div class="container">
+  <div class="arch-grid">
+    <div class="arch-card">
+      <h3>Agent Pipeline</h3>
+      <div class="flow-step">
+        <div class="flow-num" style="background:rgba(232,67,147,0.15);color:var(--pink)">1</div>
+        <div class="flow-text"><h4>Director receives query</h4><p>Parses intent, creates task plan, assigns agents</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="background:rgba(108,99,255,0.15);color:var(--accent)">2</div>
+        <div class="flow-text"><h4>Scout searches the web</h4><p>Parallel web search across 5+ engines, extracts sources</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="background:rgba(0,212,170,0.15);color:var(--green)">3</div>
+        <div class="flow-text"><h4>Analyst processes data</h4><p>Structured data extraction, trend analysis, comparisons</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="background:rgba(255,193,7,0.15);color:var(--yellow)">4</div>
+        <div class="flow-text"><h4>Synthesizer generates insights</h4><p>Combines all data into coherent findings with LLM reasoning</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="background:rgba(255,82,82,0.15);color:var(--red)">5</div>
+        <div class="flow-text"><h4>Verifier fact-checks claims</h4><p>Cross-references claims against original sources, assigns confidence</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="background:rgba(79,172,254,0.15);color:var(--blue)">6</div>
+        <div class="flow-text"><h4>Writer formats the report</h4><p>Structured output with citations, confidence scores, takeaways</p></div>
+      </div>
+    </div>
+    <div class="arch-card">
+      <h3>Technology Stack</h3>
+      <ul class="tech-list">
+        <li><span>Primary LLM</span><span class="tech-tag" style="background:rgba(108,99,255,0.1);color:var(--accent)">Claude Sonnet</span></li>
+        <li><span>Search LLM</span><span class="tech-tag" style="background:rgba(79,172,254,0.1);color:var(--blue)">Gemini Flash</span></li>
+        <li><span>Orchestration</span><span class="tech-tag" style="background:rgba(0,212,170,0.1);color:var(--green)">Python</span></li>
+        <li><span>Agent Framework</span><span class="tech-tag" style="background:rgba(255,193,7,0.1);color:var(--yellow)">Custom Built</span></li>
+        <li><span>Web Search</span><span class="tech-tag" style="background:rgba(255,140,66,0.1);color:var(--orange)">Multi-Engine</span></li>
+        <li><span>Data Store</span><span class="tech-tag" style="background:rgba(232,67,147,0.1);color:var(--pink)">JSON + SQLite</span></li>
+        <li><span>Deployment</span><span class="tech-tag" style="background:rgba(108,99,255,0.1);color:var(--accent)">Docker + Jetson</span></li>
+        <li><span>API Gateway</span><span class="tech-tag" style="background:rgba(0,212,170,0.1);color:var(--green)">Node.js + Express</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- HISTORY TAB -->
+<div class="tab-panel" id="panel-history">
+<div class="container">
+  <ul class="query-list">
+    <li><span class="q-icon">🔍</span><div class="q-info"><div class="q-title">Best AI tools for small business automation in 2026</div><div class="q-meta">April 17, 2026 · 23 sources · 4.2s · Claude Sonnet</div></div><span class="q-badge" style="background:rgba(0,212,170,0.1);color:var(--green)">Complete</span></li>
+    <li><span class="q-icon">📊</span><div class="q-info"><div class="q-title">Canadian small-cap AI stocks with growth potential</div><div class="q-meta">April 16, 2026 · 31 sources · 6.8s · Claude + Gemini</div></div><span class="q-badge" style="background:rgba(0,212,170,0.1);color:var(--green)">Complete</span></li>
+    <li><span class="q-icon">🧬</span><div class="q-info"><div class="q-title">Latest longevity research: NAD+ precursors vs senolytics</div><div class="q-meta">April 15, 2026 · 45 sources · 8.1s · Claude Sonnet</div></div><span class="q-badge" style="background:rgba(0,212,170,0.1);color:var(--green)">Complete</span></li>
+    <li><span class="q-icon">🤖</span><div class="q-info"><div class="q-title">Multi-agent system architectures for autonomous research</div><div class="q-meta">April 13, 2026 · 28 sources · 5.5s · Claude + GPT-4o</div></div><span class="q-badge" style="background:rgba(0,212,170,0.1);color:var(--green)">Complete</span></li>
+    <li><span class="q-icon">🏭</span><div class="q-info"><div class="q-title">Warehouse automation ROI for businesses under 50 employees</div><div class="q-meta">April 10, 2026 · 19 sources · 3.9s · Gemini Flash</div></div><span class="q-badge" style="background:rgba(0,212,170,0.1);color:var(--green)">Complete</span></li>
+  </ul>
+</div>
+</div>
+
+<div class="footer">Built by Jon Harris — Multi-agent research orchestration · 6 specialized agents · Production-deployed on Jetson</div>
 
 <script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
 function startResearch() {
   document.getElementById('results').classList.remove('show');
-
   const timeline = [
     { t:0,    a:'a6', status:'Parsing query, assigning tasks to agents...', cls:'working', pct:100 },
     { t:300,  a:'a1', status:'Searching web for "AI tools small business 2026"...', cls:'working', pct:30 },
-    { t:500,  a:'a6', status:'Scout dispatched. Waiting for results...', cls:'working', pct:100, src:'Coordinating 6 agents' },
+    { t:500,  a:'a6', status:'Scout dispatched. Monitoring agent pipeline...', cls:'working', pct:100, src:'Coordinating 6 agents' },
     { t:800,  a:'a1', status:'Found 23 relevant sources, extracting data...', cls:'working', pct:60, src:'G2, TechCrunch, Gartner...' },
     { t:1200, a:'a2', status:'Analyzing market data and adoption rates...', cls:'working', pct:40 },
     { t:1400, a:'a1', status:'Web search complete — 23 sources collected', cls:'complete', pct:100, done:true },
@@ -203,13 +377,11 @@ function startResearch() {
     { t:2800, a:'a3', status:'Synthesis complete — 5 key findings', cls:'complete', pct:100, done:true },
     { t:3000, a:'a4', status:'Fact-checking claims against sources...', cls:'working', pct:50 },
     { t:3300, a:'a4', status:'All claims verified — confidence scores assigned', cls:'complete', pct:100, done:true },
-    { t:3500, a:'a5', status:'Writing formatted report...', cls:'working', pct:50 },
+    { t:3500, a:'a5', status:'Writing formatted report with citations...', cls:'working', pct:50 },
     { t:3800, a:'a5', status:'Report complete — ready for review', cls:'complete', pct:100, done:true },
     { t:4000, a:'a6', status:'All agents complete. Report delivered.', cls:'complete', pct:100, done:true },
     { t:4200, a:'show' },
   ];
-
-  // Reset all agents
   for (let i=1; i<=6; i++) {
     document.getElementById('a'+i).className = 'agent';
     document.getElementById('a'+i+'s').className = 'agent-status';
@@ -217,23 +389,14 @@ function startResearch() {
     document.getElementById('a'+i+'p').style.width = '0';
     document.getElementById('a'+i+'src').textContent = '';
   }
-
   timeline.forEach(step => {
     setTimeout(() => {
-      if (step.a === 'show') {
-        document.getElementById('results').classList.add('show');
-        return;
-      }
+      if (step.a === 'show') { document.getElementById('results').classList.add('show'); return; }
       const agent = document.getElementById(step.a);
       const statusEl = document.getElementById(step.a+'s');
       const progEl = document.getElementById(step.a+'p');
       const srcEl = document.getElementById(step.a+'src');
-
-      if (step.done) {
-        agent.className = 'agent done';
-      } else {
-        agent.className = 'agent active';
-      }
+      agent.className = step.done ? 'agent done' : 'agent active';
       statusEl.textContent = step.status;
       statusEl.className = 'agent-status ' + step.cls;
       progEl.style.width = step.pct + '%';
@@ -242,6 +405,5 @@ function startResearch() {
   });
 }
 </script>
-
 </body>
 </html>

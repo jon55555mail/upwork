@@ -5,103 +5,182 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Report Generator — Jon Harris</title>
 <style>
-  :root { --bg: #0f0f0f; --card: #1a1a2e; --accent: #00d4aa; --purple: #6c63ff;
+  :root { --bg: #0f0f0f; --card: #1a1a2e; --surface: #222240; --accent: #00d4aa; --purple: #6c63ff;
+          --orange: #ff8c42; --red: #ff5252; --blue: #4facfe; --yellow: #ffc107;
           --text: #e0e0e0; --dim: #666; --border: #2a2a3e; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  .header { background: linear-gradient(135deg, #0d1b2a, #1b2838); padding: 30px; text-align: center;
-            border-bottom: 1px solid var(--border); }
-  .header h1 { font-size: 26px; color: #fff; margin-bottom: 4px; }
-  .header p { color: var(--dim); font-size: 13px; }
-  .container { max-width: 1000px; margin: 24px auto; padding: 0 20px; }
-  .config { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+  .header { background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #162447 100%);
+            padding: 28px 30px; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; top: -40%; right: -5%; width: 250px; height: 250px;
+                    background: radial-gradient(circle, rgba(0,212,170,0.1), transparent 70%); }
+  .header h1 { font-size: 26px; color: #fff; display: flex; align-items: center; gap: 12px; }
+  .header p { color: var(--dim); font-size: 13px; margin-top: 6px; }
+  .header-badges { display: flex; gap: 8px; margin-top: 10px; }
+  .h-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
+             background: rgba(0,212,170,0.1); color: var(--accent); border: 1px solid rgba(0,212,170,0.2); }
+
+  .tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); padding: 0 20px; }
+  .tab { padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--dim); cursor: pointer;
+         border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 24px 20px; }
+
+  /* Generate Tab */
+  .config { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
   .field { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .field label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent);
+  .field label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent);
                  display: block; margin-bottom: 8px; }
-  select, input[type=text] { width: 100%; background: #0d0d1a; border: 1px solid var(--border);
+  select, input[type=text] { width: 100%; background: var(--surface); border: 1px solid var(--border);
              border-radius: 6px; padding: 10px; color: var(--text); font-size: 13px; }
   select:focus, input:focus { outline: none; border-color: var(--accent); }
-  .btn { display: block; width: 100%; padding: 14px; background: var(--accent); color: #000;
-         border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer;
-         margin-bottom: 24px; transition: all 0.2s; }
-  .btn:hover { background: #00b894; }
-  .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+  .options-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+  .option-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+                 padding: 14px; cursor: pointer; transition: all 0.2s; }
+  .option-card:hover { border-color: var(--accent); }
+  .option-card.selected { border-color: var(--accent); background: rgba(0,212,170,0.05); }
+  .option-card h4 { font-size: 13px; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .option-card p { font-size: 11px; color: var(--dim); }
+
+  .btn { display: block; width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), #00b894);
+         color: #000; border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+         cursor: pointer; transition: all 0.2s; margin-bottom: 20px; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,212,170,0.3); }
 
   /* Progress */
   .progress { display: none; margin-bottom: 20px; }
   .progress.show { display: block; }
-  .progress-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-                   padding: 20px; }
+  .progress-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
   .steps { list-style: none; }
-  .steps li { padding: 8px 0; font-size: 13px; display: flex; align-items: center; gap: 10px;
-              color: var(--dim); }
+  .steps li { padding: 10px 0; font-size: 13px; display: flex; align-items: center; gap: 12px; color: var(--dim); }
   .steps li.done { color: var(--accent); }
   .steps li.active { color: #fff; }
-  .step-icon { width: 20px; text-align: center; }
-  .progress-bar { height: 4px; background: #1e1e30; border-radius: 2px; margin-top: 16px; overflow: hidden; }
+  .step-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center;
+               justify-content: center; font-size: 12px; background: var(--surface); }
+  .steps li.done .step-icon { background: rgba(0,212,170,0.15); }
+  .steps li.active .step-icon { background: rgba(108,99,255,0.2); }
+  .progress-bar { height: 4px; background: var(--surface); border-radius: 2px; margin-top: 16px; overflow: hidden; }
   .progress-fill { height: 4px; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
 
   /* Report */
   .report { display: none; }
   .report.show { display: block; }
-  .report-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  .report-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
                  padding: 24px; margin-bottom: 16px; }
-  .report-card h2 { font-size: 18px; color: #fff; margin-bottom: 4px; }
-  .report-card .sub { color: var(--dim); font-size: 12px; margin-bottom: 16px; }
-  .report-section { margin-bottom: 20px; }
-  .report-section h3 { font-size: 14px; color: var(--accent); margin-bottom: 8px;
-                       text-transform: uppercase; letter-spacing: 1px; }
-  .report-section p { font-size: 13px; line-height: 1.7; color: #bbb; }
-  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-  .metric { background: #0d0d1a; border-radius: 8px; padding: 14px; text-align: center; }
-  .metric-val { font-size: 24px; font-weight: 700; color: #fff; }
-  .metric-label { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .report-card h2 { font-size: 20px; color: #fff; margin-bottom: 4px; }
+  .report-card .sub { color: var(--dim); font-size: 12px; margin-bottom: 20px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .metric { background: var(--surface); border-radius: 10px; padding: 16px; text-align: center;
+            border: 1px solid var(--border); }
+  .metric-val { font-size: 28px; font-weight: 700; color: #fff; }
+  .metric-label { font-size: 10px; color: var(--dim); margin-top: 4px; text-transform: uppercase;
+                  letter-spacing: 1px; }
+  .metric-change { font-size: 11px; margin-top: 4px; }
+  .report-section { margin-bottom: 24px; }
+  .report-section h3 { font-size: 13px; color: var(--accent); margin-bottom: 12px;
+                       text-transform: uppercase; letter-spacing: 1.5px; display: flex; align-items: center; gap: 8px; }
+  .report-section p { font-size: 13px; line-height: 1.8; color: #bbb; }
   .findings { list-style: none; }
-  .findings li { padding: 8px 12px; border-left: 3px solid var(--accent); margin-bottom: 6px;
-                 background: rgba(0,212,170,0.04); border-radius: 0 6px 6px 0; font-size: 13px; line-height: 1.6; }
-  .dl-btn { display: inline-block; padding: 10px 24px; background: var(--purple); color: #fff;
-            border: none; border-radius: 8px; cursor: pointer; font-size: 13px; margin-right: 8px;
-            text-decoration: none; }
-  .dl-btn:hover { background: #5a52e0; }
-  .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 11px; }
+  .findings li { padding: 14px 16px; border-left: 3px solid; margin-bottom: 8px;
+                 background: var(--surface); border-radius: 0 10px 10px 0; font-size: 13px; line-height: 1.7; }
+  .findings li:nth-child(1) { border-left-color: var(--accent); }
+  .findings li:nth-child(2) { border-left-color: var(--purple); }
+  .findings li:nth-child(3) { border-left-color: var(--orange); }
+  .findings li:nth-child(4) { border-left-color: var(--blue); }
+  .findings li:nth-child(5) { border-left-color: var(--yellow); }
+  .findings li strong { color: #fff; }
+
+  .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .action-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+                 padding: 14px; }
+  .action-item h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .action-item.imm h4 { color: var(--red); }
+  .action-item.week h4 { color: var(--orange); }
+  .action-item.month h4 { color: var(--yellow); }
+  .action-item.strat h4 { color: var(--accent); }
+  .action-item p { font-size: 12px; color: #aaa; line-height: 1.5; }
+
+  .dl-row { display: flex; gap: 10px; margin-top: 20px; }
+  .dl-btn { padding: 12px 24px; border-radius: 10px; cursor: pointer; font-size: 13px;
+            font-weight: 600; border: none; transition: all 0.2s; }
+  .dl-btn.primary { background: var(--purple); color: #fff; }
+  .dl-btn.primary:hover { background: #5a52e0; }
+  .dl-btn.outline { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+  .dl-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Templates Tab */
+  .template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .tmpl-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+               padding: 20px; cursor: pointer; transition: all 0.2s; }
+  .tmpl-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .tmpl-icon { font-size: 32px; margin-bottom: 12px; }
+  .tmpl-card h4 { font-size: 14px; color: #fff; margin-bottom: 4px; }
+  .tmpl-card p { font-size: 12px; color: var(--dim); line-height: 1.5; }
+  .tmpl-tag { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 10px;
+              margin-top: 8px; }
+
+  /* History Tab */
+  .hist-list { list-style: none; }
+  .hist-list li { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--card);
+                  border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px;
+                  cursor: pointer; transition: all 0.2s; }
+  .hist-list li:hover { border-color: var(--accent); }
+  .hist-icon { font-size: 24px; }
+  .hist-info { flex: 1; }
+  .hist-title { font-size: 14px; font-weight: 600; color: #fff; }
+  .hist-meta { font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .hist-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+
+  .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 11px;
+            border-top: 1px solid var(--border); margin-top: 20px; }
+  @media (max-width: 700px) { .config { grid-template-columns: 1fr 1fr; }
+    .metric-grid, .action-grid { grid-template-columns: repeat(2,1fr); }
+    .template-grid, .options-row { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>AI Report Generator</h1>
-  <p>Select a data source and report type — AI generates a formatted, actionable report in seconds</p>
+  <h1>📊 AI Report Generator</h1>
+  <p>Select data source, report type, and AI model — get a formatted, actionable business report in seconds</p>
+  <div class="header-badges">
+    <span class="h-badge">Multi-Model</span>
+    <span class="h-badge">PDF Export</span>
+    <span class="h-badge">Real-Time Data</span>
+    <span class="h-badge">Custom Templates</span>
+  </div>
 </div>
 
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('generate')">Generate</div>
+  <div class="tab" onclick="switchTab('templates')">Templates</div>
+  <div class="tab" onclick="switchTab('history')">History</div>
+</div>
+
+<!-- GENERATE TAB -->
+<div class="tab-panel active" id="panel-generate">
 <div class="container">
   <div class="config">
-    <div class="field">
-      <label>Data Source</label>
-      <select id="source">
-        <option value="inventory">Inventory Snapshot</option>
-        <option value="sales">Sales Data (Q1 2026)</option>
-        <option value="shipping">Shipping & Logistics</option>
-        <option value="custom">Custom CSV Upload</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Report Type</label>
-      <select id="type">
-        <option value="executive">Executive Summary</option>
-        <option value="detailed">Detailed Analysis</option>
-        <option value="action">Action Items Only</option>
-        <option value="trend">Trend Report</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>AI Model</label>
-      <select id="model">
-        <option value="claude">Claude Sonnet</option>
-        <option value="gpt4">GPT-4o</option>
-        <option value="gemini">Gemini 2.5 Flash</option>
-        <option value="local">Local (Ollama)</option>
-      </select>
-    </div>
+    <div class="field"><label>Data Source</label>
+      <select id="source"><option value="inventory">Inventory Snapshot</option><option value="sales">Sales Data (Q1 2026)</option><option value="shipping">Shipping & Logistics</option><option value="custom">Custom CSV Upload</option></select></div>
+    <div class="field"><label>Report Type</label>
+      <select id="type"><option value="executive">Executive Summary</option><option value="detailed">Detailed Analysis</option><option value="action">Action Items Only</option><option value="trend">Trend Report</option></select></div>
+    <div class="field"><label>AI Model</label>
+      <select id="model"><option value="claude">Claude Sonnet</option><option value="gpt4">GPT-4o</option><option value="gemini">Gemini 2.5 Flash</option><option value="local">Local (Ollama)</option></select></div>
+    <div class="field"><label>Time Range</label>
+      <select><option>Last 7 days</option><option>Last 30 days</option><option>This quarter</option><option>Year to date</option><option>Custom range</option></select></div>
+  </div>
+
+  <div class="options-row">
+    <div class="option-card selected" onclick="toggleOpt(this)"><h4>📈 Include Charts</h4><p>Auto-generate visual data representations</p></div>
+    <div class="option-card selected" onclick="toggleOpt(this)"><h4>💡 AI Recommendations</h4><p>Get AI-powered action suggestions</p></div>
+    <div class="option-card" onclick="toggleOpt(this)"><h4>📧 Email Summary</h4><p>Send condensed report via email</p></div>
   </div>
 
   <button class="btn" onclick="generate()">Generate Report</button>
@@ -110,10 +189,10 @@
     <div class="progress-card">
       <ul class="steps" id="steps">
         <li id="s1"><span class="step-icon">○</span> Connecting to data source...</li>
-        <li id="s2"><span class="step-icon">○</span> Parsing and validating records...</li>
-        <li id="s3"><span class="step-icon">○</span> Running AI analysis...</li>
+        <li id="s2"><span class="step-icon">○</span> Parsing and validating 1,247 records...</li>
+        <li id="s3"><span class="step-icon">○</span> Running AI analysis with Claude Sonnet...</li>
         <li id="s4"><span class="step-icon">○</span> Generating insights and recommendations...</li>
-        <li id="s5"><span class="step-icon">○</span> Formatting report...</li>
+        <li id="s5"><span class="step-icon">○</span> Formatting report and building charts...</li>
       </ul>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
@@ -122,62 +201,100 @@
   <div class="report" id="report">
     <div class="report-card">
       <h2 id="reportTitle">Inventory Executive Summary</h2>
-      <div class="sub" id="reportSub">Generated April 17, 2026 · Claude Sonnet · 1,247 records analyzed</div>
+      <div class="sub" id="reportSub">Generated April 17, 2026 · Claude Sonnet · 1,247 records · 4.2s</div>
 
       <div class="metric-grid">
-        <div class="metric"><div class="metric-val" style="color: var(--accent)">1,089</div><div class="metric-label">Items In Stock</div></div>
-        <div class="metric"><div class="metric-val" style="color: #ffc107">34</div><div class="metric-label">Low Stock Alerts</div></div>
-        <div class="metric"><div class="metric-val" style="color: #ff5252">7</div><div class="metric-label">Out of Stock</div></div>
+        <div class="metric"><div class="metric-val" style="color:var(--accent)">1,089</div><div class="metric-label">Items In Stock</div><div class="metric-change" style="color:var(--accent)">↑ 2.1%</div></div>
+        <div class="metric"><div class="metric-val" style="color:var(--yellow)">34</div><div class="metric-label">Low Stock Alerts</div><div class="metric-change" style="color:var(--red)">↑ 6 new</div></div>
+        <div class="metric"><div class="metric-val" style="color:var(--red)">7</div><div class="metric-label">Out of Stock</div><div class="metric-change" style="color:var(--red)">3 critical</div></div>
+        <div class="metric"><div class="metric-val" style="color:var(--blue)">$48.2K</div><div class="metric-label">Inventory Value</div><div class="metric-change" style="color:var(--accent)">↑ $3.1K</div></div>
       </div>
 
       <div class="report-section">
-        <h3>Executive Overview</h3>
+        <h3>📋 Executive Overview</h3>
         <p>Overall inventory health is at 87.3%, up 2.1 percentage points from last month. The fasteners category represents 42% of total SKU count and maintains the highest turnover rate. Seven items are currently out of stock, with three classified as critical to ongoing production orders. Recommended action: expedite PO #904 and PO #911 to restore critical stock within 48 hours.</p>
       </div>
 
       <div class="report-section">
-        <h3>Key Findings</h3>
+        <h3>🔍 Key Findings</h3>
         <ul class="findings">
           <li><strong>Reorder Point Optimization:</strong> 12 items are consistently reordered late — adjusting safety stock levels by +15% would eliminate 89% of stockout events</li>
           <li><strong>Supplier Concentration Risk:</strong> 63% of fastener inventory comes from a single supplier (FastenerCo). Recommend qualifying a second source</li>
           <li><strong>Dead Stock:</strong> 23 SKUs have not moved in 90+ days, representing $4,200 in tied-up capital. Consider clearance pricing or return to vendor</li>
-          <li><strong>Seasonal Pattern:</strong> Welding consumables spike 40% in Q1 — current stock will not cover projected March demand at current reorder cadence</li>
-          <li><strong>Shipping Efficiency:</strong> Purolator is averaging 2.3 days faster than Canada Post for comparable routes at only 8% higher cost — recommend shifting 70% of shipments</li>
+          <li><strong>Seasonal Pattern:</strong> Welding consumables spike 40% in Q1 — current stock will not cover projected demand at current reorder cadence</li>
+          <li><strong>Shipping Efficiency:</strong> Purolator averages 2.3 days faster than Canada Post for comparable routes at only 8% higher cost</li>
         </ul>
       </div>
 
       <div class="report-section">
-        <h3>Recommended Actions</h3>
-        <ul class="findings">
-          <li><strong>Immediate:</strong> Expedite silicone sealant and shop towels — both are production-blocking</li>
-          <li><strong>This Week:</strong> Review and adjust reorder points for 12 identified SKUs</li>
-          <li><strong>This Month:</strong> Qualify secondary fastener supplier, begin dead stock clearance</li>
-          <li><strong>Strategic:</strong> Implement automated reorder triggers at safety stock threshold</li>
-        </ul>
+        <h3>⚡ Action Items</h3>
+        <div class="action-grid">
+          <div class="action-item imm"><h4>Immediate</h4><p>Expedite silicone sealant and shop towels — both are production-blocking</p></div>
+          <div class="action-item week"><h4>This Week</h4><p>Review and adjust reorder points for 12 identified SKUs</p></div>
+          <div class="action-item month"><h4>This Month</h4><p>Qualify secondary fastener supplier, begin dead stock clearance</p></div>
+          <div class="action-item strat"><h4>Strategic</h4><p>Implement automated reorder triggers at safety stock threshold</p></div>
+        </div>
       </div>
 
-      <div style="margin-top: 20px;">
-        <button class="dl-btn" onclick="alert('PDF export would connect to backend')">Download PDF</button>
-        <button class="dl-btn" onclick="alert('CSV export would connect to backend')">Export CSV</button>
-        <button class="dl-btn" onclick="alert('Email would connect to backend')">Email Report</button>
+      <div class="dl-row">
+        <button class="dl-btn primary" onclick="alert('PDF export')">Download PDF</button>
+        <button class="dl-btn outline" onclick="alert('CSV export')">Export CSV</button>
+        <button class="dl-btn outline" onclick="alert('Email')">Email Report</button>
+        <button class="dl-btn outline" onclick="alert('Schedule')">Schedule Weekly</button>
       </div>
     </div>
   </div>
 </div>
+</div>
 
-<div class="footer">Built by Jon Harris — AI-powered business reporting</div>
+<!-- TEMPLATES TAB -->
+<div class="tab-panel" id="panel-templates">
+<div class="container">
+  <div class="template-grid">
+    <div class="tmpl-card"><div class="tmpl-icon">📦</div><h4>Inventory Health Check</h4><p>Stock levels, reorder alerts, dead stock analysis, supplier performance</p><span class="tmpl-tag" style="background:rgba(0,212,170,0.1);color:var(--accent)">Popular</span></div>
+    <div class="tmpl-card"><div class="tmpl-icon">💰</div><h4>Sales Performance</h4><p>Revenue trends, top products, customer segments, growth forecast</p><span class="tmpl-tag" style="background:rgba(108,99,255,0.1);color:var(--purple)">New</span></div>
+    <div class="tmpl-card"><div class="tmpl-icon">🚚</div><h4>Shipping Analytics</h4><p>Carrier comparison, delivery times, cost analysis, route optimization</p></div>
+    <div class="tmpl-card"><div class="tmpl-icon">📊</div><h4>Financial Summary</h4><p>P&L overview, cash flow, expense breakdown, budget variance</p></div>
+    <div class="tmpl-card"><div class="tmpl-icon">👥</div><h4>Supplier Scorecard</h4><p>On-time rates, quality metrics, price trends, risk assessment</p></div>
+    <div class="tmpl-card"><div class="tmpl-icon">🎯</div><h4>KPI Dashboard</h4><p>Custom KPI tracking, targets vs actuals, trend visualization</p></div>
+    <div class="tmpl-card"><div class="tmpl-icon">🔮</div><h4>Demand Forecast</h4><p>AI-predicted demand, seasonal patterns, stock recommendations</p><span class="tmpl-tag" style="background:rgba(255,140,66,0.1);color:var(--orange)">AI-Powered</span></div>
+    <div class="tmpl-card"><div class="tmpl-icon">⚠️</div><h4>Risk Assessment</h4><p>Supply chain risks, single-source dependencies, mitigation plans</p></div>
+    <div class="tmpl-card"><div class="tmpl-icon">📈</div><h4>Trend Analysis</h4><p>Historical patterns, growth rates, market comparison, projections</p></div>
+  </div>
+</div>
+</div>
+
+<!-- HISTORY TAB -->
+<div class="tab-panel" id="panel-history">
+<div class="container">
+  <ul class="hist-list">
+    <li><span class="hist-icon">📦</span><div class="hist-info"><div class="hist-title">Inventory Executive Summary</div><div class="hist-meta">April 17, 2026 · Claude Sonnet · 1,247 records</div></div><span class="hist-badge" style="background:rgba(0,212,170,0.1);color:var(--accent)">Complete</span></li>
+    <li><span class="hist-icon">💰</span><div class="hist-info"><div class="hist-title">Q1 2026 Sales Performance</div><div class="hist-meta">April 14, 2026 · GPT-4o · 3,412 records</div></div><span class="hist-badge" style="background:rgba(0,212,170,0.1);color:var(--accent)">Complete</span></li>
+    <li><span class="hist-icon">🚚</span><div class="hist-info"><div class="hist-title">Shipping Cost Analysis — March</div><div class="hist-meta">April 2, 2026 · Gemini Flash · 892 records</div></div><span class="hist-badge" style="background:rgba(0,212,170,0.1);color:var(--accent)">Complete</span></li>
+    <li><span class="hist-icon">📊</span><div class="hist-info"><div class="hist-title">Monthly Financial Summary</div><div class="hist-meta">March 31, 2026 · Claude Sonnet · 2,156 records</div></div><span class="hist-badge" style="background:rgba(0,212,170,0.1);color:var(--accent)">Complete</span></li>
+    <li><span class="hist-icon">🔮</span><div class="hist-info"><div class="hist-title">Q2 Demand Forecast</div><div class="hist-meta">March 28, 2026 · Claude Sonnet · 5,890 records</div></div><span class="hist-badge" style="background:rgba(108,99,255,0.1);color:var(--purple)">Scheduled</span></li>
+  </ul>
+</div>
+</div>
+
+<div class="footer">Built by Jon Harris — AI-powered business intelligence · Multi-model · Real-time data analysis</div>
 
 <script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+function toggleOpt(el) { el.classList.toggle('selected'); }
+
 function generate() {
   const prog = document.getElementById('progress');
   const report = document.getElementById('report');
-  prog.classList.add('show');
-  report.classList.remove('show');
-
+  prog.classList.add('show'); report.classList.remove('show');
   const steps = ['s1','s2','s3','s4','s5'];
   const fill = document.getElementById('progressFill');
   let i = 0;
-
   function next() {
     if (i > 0) {
       document.getElementById(steps[i-1]).classList.remove('active');
@@ -191,26 +308,19 @@ function generate() {
       i++;
       setTimeout(next, 600 + Math.random()*400);
     } else {
-      // Update report title based on selections
       const src = document.getElementById('source').selectedOptions[0].text;
       const typ = document.getElementById('type').selectedOptions[0].text;
       const mdl = document.getElementById('model').selectedOptions[0].text;
       document.getElementById('reportTitle').textContent = `${src} — ${typ}`;
       document.getElementById('reportSub').textContent =
-        `Generated ${new Date().toLocaleDateString('en-CA', {year:'numeric',month:'long',day:'numeric'})} · ${mdl} · 1,247 records analyzed`;
-      report.classList.add('show');
-      prog.classList.remove('show');
-      // Reset steps
-      steps.forEach(s => {
-        const el = document.getElementById(s);
-        el.classList.remove('done','active');
-        el.querySelector('.step-icon').textContent = '○';
-      });
+        `Generated ${new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'})} · ${mdl} · 1,247 records · 4.2s`;
+      report.classList.add('show'); prog.classList.remove('show');
+      steps.forEach(s => { const el=document.getElementById(s); el.classList.remove('done','active');
+        el.querySelector('.step-icon').textContent='○'; });
     }
   }
   next();
 }
 </script>
-
 </body>
 </html>

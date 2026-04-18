@@ -5,73 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inventory Dashboard — Jon Harris</title>
 <style>
-  :root { --bg: #0a0a12; --card: #12121e; --accent: #6c63ff; --green: #00d4aa;
-          --red: #ff5252; --yellow: #ffc107; --text: #e0e0e0; --dim: #666; --border: #1e1e30; }
+  :root { --bg: #0a0a12; --card: #12121e; --surface: #181830; --accent: #6c63ff; --green: #00d4aa;
+          --red: #ff5252; --yellow: #ffc107; --blue: #4facfe; --orange: #ff8c42;
+          --text: #e0e0e0; --dim: #666; --border: #1e1e30; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
   .layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
 
-  /* Sidebar */
   .sidebar { background: var(--card); border-right: 1px solid var(--border); padding: 20px 0; }
   .logo { padding: 0 20px 20px; font-size: 18px; font-weight: 700; color: #fff;
           border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-  .logo span { color: var(--accent); }
+  .logo span { color: var(--green); }
+  .logo small { display: block; font-size: 10px; color: var(--dim); font-weight: 400; margin-top: 2px; }
   .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px;
               color: var(--dim); cursor: pointer; transition: all 0.2s; }
   .nav-item:hover, .nav-item.active { color: #fff; background: rgba(108,99,255,0.1);
                                        border-right: 3px solid var(--accent); }
   .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-section { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--dim);
+                 padding: 16px 20px 6px; }
 
-  /* Main */
-  .main { padding: 24px; }
-  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .main { padding: 24px; overflow-y: auto; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
   .top-bar h1 { font-size: 22px; color: #fff; }
-  .top-bar .date { color: var(--dim); font-size: 13px; }
+  .top-right { display: flex; align-items: center; gap: 14px; }
+  .top-right .date { color: var(--dim); font-size: 13px; }
+  .top-btn { padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+             border: none; transition: all 0.2s; }
+  .top-btn.primary { background: var(--accent); color: #fff; }
+  .top-btn.outline { background: transparent; border: 1px solid var(--border); color: var(--dim); }
 
-  /* Stat cards */
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
-  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim);
-                margin-bottom: 8px; }
-  .stat-value { font-size: 28px; font-weight: 700; color: #fff; }
-  .stat-change { font-size: 12px; margin-top: 4px; }
+  .tabs { display: flex; gap: 0; margin-bottom: 20px; background: var(--card); border-radius: 10px;
+          border: 1px solid var(--border); overflow: hidden; }
+  .tab { padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--dim); cursor: pointer;
+         transition: all 0.2s; flex: 1; text-align: center; }
+  .tab:hover { color: var(--text); }
+  .tab.active { background: var(--accent); color: #fff; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+          position: relative; overflow: hidden; }
+  .stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .stat.s1::before { background: var(--accent); }
+  .stat.s2::before { background: var(--green); }
+  .stat.s3::before { background: var(--yellow); }
+  .stat.s4::before { background: var(--red); }
+  .stat.s5::before { background: var(--blue); }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--dim);
+                margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: #fff; }
+  .stat-change { font-size: 11px; margin-top: 4px; }
   .stat-change.up { color: var(--green); }
   .stat-change.down { color: var(--red); }
 
-  /* Table */
-  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-                overflow: hidden; }
-  .table-header { display: flex; justify-content: space-between; align-items: center;
-                  padding: 16px 20px; border-bottom: 1px solid var(--border); }
-  .table-header h3 { font-size: 15px; color: #fff; }
-  .search { background: #0a0a12; border: 1px solid var(--border); border-radius: 8px;
-            padding: 8px 14px; color: var(--text); font-size: 12px; width: 200px; }
-  .search:focus { outline: none; border-color: var(--accent); }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-       color: var(--dim); padding: 12px 20px; border-bottom: 1px solid var(--border); }
-  td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid var(--border); }
-  tr:hover { background: rgba(108,99,255,0.04); }
-  .sku { font-family: monospace; color: var(--accent); }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px;
-           font-weight: 600; }
-  .badge.in-stock { background: rgba(0,212,170,0.1); color: var(--green); }
-  .badge.low { background: rgba(255,193,7,0.1); color: var(--yellow); }
-  .badge.critical { background: rgba(255,82,82,0.1); color: var(--red); }
-  .badge.out { background: rgba(255,82,82,0.15); color: var(--red); }
-  .bar-cell { position: relative; }
-  .bar-bg { width: 100px; height: 6px; background: #1e1e30; border-radius: 3px; }
-  .bar-fill { height: 6px; border-radius: 3px; }
-
-  /* Charts area */
-  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-                padding: 20px; }
-  .chart-card h3 { font-size: 14px; color: #fff; margin-bottom: 16px; }
-  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+  /* Charts */
+  .charts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .chart-card h3 { font-size: 13px; color: #fff; margin-bottom: 14px; display: flex; align-items: center;
+                   justify-content: space-between; }
+  .chart-card h3 span { font-size: 10px; color: var(--dim); }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 110px; }
   .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 1s ease; }
-  .bar-label { font-size: 10px; color: var(--dim); }
+  .bar { width: 100%; border-radius: 3px 3px 0 0; transition: height 0.8s ease; }
+  .bar-label { font-size: 9px; color: var(--dim); }
+
+  /* Donut */
+  .donut-wrap { display: flex; align-items: center; gap: 16px; }
+  .donut-legend { list-style: none; }
+  .donut-legend li { font-size: 11px; padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+  .donut-legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Activity */
   .activity-list { list-style: none; }
   .activity-list li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px;
                       display: flex; gap: 10px; align-items: center; }
@@ -79,99 +86,259 @@
   .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .activity-time { color: var(--dim); font-size: 11px; margin-left: auto; white-space: nowrap; }
 
+  /* Table */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .table-header { display: flex; justify-content: space-between; align-items: center;
+                  padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .table-header h3 { font-size: 14px; color: #fff; }
+  .table-controls { display: flex; gap: 8px; }
+  .search { background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 8px 14px; color: var(--text); font-size: 12px; width: 200px; }
+  .search:focus { outline: none; border-color: var(--accent); }
+  .filter-btn { padding: 8px 14px; background: var(--surface); border: 1px solid var(--border);
+                border-radius: 8px; color: var(--dim); font-size: 12px; cursor: pointer; }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+       color: var(--dim); padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  tr:hover { background: rgba(108,99,255,0.04); }
+  .sku { font-family: 'Cascadia Code', monospace; color: var(--accent); font-size: 12px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+  .badge.in-stock { background: rgba(0,212,170,0.1); color: var(--green); }
+  .badge.low { background: rgba(255,193,7,0.1); color: var(--yellow); }
+  .badge.critical { background: rgba(255,82,82,0.1); color: var(--red); }
+  .badge.out { background: rgba(255,82,82,0.15); color: var(--red); }
+  .bar-bg { width: 80px; height: 6px; background: #1e1e30; border-radius: 3px; }
+  .bar-fill { height: 6px; border-radius: 3px; }
+
+  /* Shipments Tab */
+  .shipment-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .ship-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .ship-card h4 { font-size: 13px; color: #fff; margin-bottom: 4px; }
+  .ship-id { font-family: monospace; color: var(--blue); font-size: 11px; }
+  .ship-status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px;
+                 font-weight: 600; margin-top: 8px; }
+  .ship-status.transit { background: rgba(79,172,254,0.1); color: var(--blue); }
+  .ship-status.delivered { background: rgba(0,212,170,0.1); color: var(--green); }
+  .ship-status.pending { background: rgba(255,193,7,0.1); color: var(--yellow); }
+  .ship-detail { font-size: 11px; color: var(--dim); margin-top: 8px; line-height: 1.6; }
+  .ship-bar { height: 4px; background: var(--surface); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .ship-bar-fill { height: 4px; border-radius: 2px; }
+
+  /* Suppliers Tab */
+  .supplier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .sup-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .sup-card h4 { font-size: 14px; color: #fff; margin-bottom: 4px; }
+  .sup-card .sup-type { font-size: 11px; color: var(--dim); margin-bottom: 12px; }
+  .sup-stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);
+              font-size: 12px; }
+  .sup-stat:last-child { border: none; }
+  .sup-stat .val { font-weight: 600; }
+  .sup-rating { color: var(--yellow); }
+
   .footer { text-align: center; padding: 20px; color: var(--dim); font-size: 11px; }
   @media (max-width: 900px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .charts { grid-template-columns: 1fr; }
+    .layout { grid-template-columns: 1fr; } .sidebar { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); } .charts { grid-template-columns: 1fr; }
+    .shipment-cards, .supplier-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
-
 <div class="layout">
   <div class="sidebar">
-    <div class="logo">Ryno<span>Track</span></div>
+    <div class="logo">Ryno<span>Track</span><small>Inventory Management System</small></div>
+    <div class="nav-section">Main</div>
     <div class="nav-item active"><span class="icon">📊</span> Dashboard</div>
     <div class="nav-item"><span class="icon">📦</span> Inventory</div>
     <div class="nav-item"><span class="icon">🚚</span> Shipments</div>
     <div class="nav-item"><span class="icon">📋</span> Orders</div>
+    <div class="nav-section">Management</div>
     <div class="nav-item"><span class="icon">👥</span> Suppliers</div>
     <div class="nav-item"><span class="icon">📈</span> Reports</div>
+    <div class="nav-item"><span class="icon">🔔</span> Alerts</div>
+    <div class="nav-section">System</div>
+    <div class="nav-item"><span class="icon">🤖</span> AI Insights</div>
     <div class="nav-item"><span class="icon">⚙️</span> Settings</div>
   </div>
 
   <div class="main">
     <div class="top-bar">
       <h1>Inventory Dashboard</h1>
-      <div class="date" id="currentDate"></div>
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-label">Total SKUs</div>
-        <div class="stat-value">1,247</div>
-        <div class="stat-change up">↑ 23 this week</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">In Stock</div>
-        <div class="stat-value">1,089</div>
-        <div class="stat-change up">↑ 87.3%</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Low Stock Alerts</div>
-        <div class="stat-value" style="color: var(--yellow)">34</div>
-        <div class="stat-change down">↑ 6 from yesterday</div>
-      </div>
-      <div class="stat">
-        <div class="stat-label">Shipments Today</div>
-        <div class="stat-value">18</div>
-        <div class="stat-change up">↑ 12% vs avg</div>
+      <div class="top-right">
+        <div class="date" id="currentDate"></div>
+        <button class="top-btn outline">Export</button>
+        <button class="top-btn primary">+ New Item</button>
       </div>
     </div>
 
-    <div class="charts">
-      <div class="chart-card">
-        <h3>Weekly Shipments</h3>
-        <div class="bar-chart" id="barChart"></div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('overview')">Overview</div>
+      <div class="tab" onclick="switchTab('inventory')">Inventory</div>
+      <div class="tab" onclick="switchTab('shipments')">Shipments</div>
+      <div class="tab" onclick="switchTab('suppliers')">Suppliers</div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-panel active" id="panel-overview">
+      <div class="stats">
+        <div class="stat s1"><div class="stat-label">Total SKUs</div><div class="stat-value">1,247</div><div class="stat-change up">↑ 23 this week</div></div>
+        <div class="stat s2"><div class="stat-label">In Stock</div><div class="stat-value">1,089</div><div class="stat-change up">87.3% healthy</div></div>
+        <div class="stat s3"><div class="stat-label">Low Stock</div><div class="stat-value" style="color:var(--yellow)">34</div><div class="stat-change down">↑ 6 from yesterday</div></div>
+        <div class="stat s4"><div class="stat-label">Out of Stock</div><div class="stat-value" style="color:var(--red)">7</div><div class="stat-change down">3 critical</div></div>
+        <div class="stat s5"><div class="stat-label">Shipments Today</div><div class="stat-value">18</div><div class="stat-change up">↑ 12% vs avg</div></div>
       </div>
-      <div class="chart-card">
-        <h3>Recent Activity</h3>
-        <ul class="activity-list">
-          <li><span class="activity-dot" style="background: var(--green)"></span>
-              <span>Received 240x hex bolts from FastenerCo</span>
-              <span class="activity-time">12 min ago</span></li>
-          <li><span class="activity-dot" style="background: var(--accent)"></span>
-              <span>Order #4821 shipped via Purolator</span>
-              <span class="activity-time">34 min ago</span></li>
-          <li><span class="activity-dot" style="background: var(--yellow)"></span>
-              <span>Low stock alert: 3/8" washers (14 remaining)</span>
-              <span class="activity-time">1 hr ago</span></li>
-          <li><span class="activity-dot" style="background: var(--green)"></span>
-              <span>PO #892 confirmed by supplier</span>
-              <span class="activity-time">2 hr ago</span></li>
-          <li><span class="activity-dot" style="background: var(--red)"></span>
-              <span>Stock out: silicone sealant 10oz</span>
-              <span class="activity-time">3 hr ago</span></li>
-        </ul>
+
+      <div class="charts">
+        <div class="chart-card">
+          <h3>Weekly Shipments <span>Last 7 days</span></h3>
+          <div class="bar-chart" id="barChart"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Stock Distribution <span>By category</span></h3>
+          <div class="donut-wrap">
+            <svg width="100" height="100" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--surface)" stroke-width="5"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--accent)" stroke-width="5"
+                      stroke-dasharray="42 58" stroke-dashoffset="25" transform="rotate(-90 21 21)"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="5"
+                      stroke-dasharray="22 78" stroke-dashoffset="83" transform="rotate(-90 21 21)"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--yellow)" stroke-width="5"
+                      stroke-dasharray="18 82" stroke-dashoffset="61" transform="rotate(-90 21 21)"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--blue)" stroke-width="5"
+                      stroke-dasharray="12 88" stroke-dashoffset="43" transform="rotate(-90 21 21)"/>
+            </svg>
+            <ul class="donut-legend">
+              <li><span class="dot" style="background:var(--accent)"></span> Fasteners 42%</li>
+              <li><span class="dot" style="background:var(--green)"></span> Welding 22%</li>
+              <li><span class="dot" style="background:var(--yellow)"></span> PPE 18%</li>
+              <li><span class="dot" style="background:var(--blue)"></span> Fluids 12%</li>
+              <li><span class="dot" style="background:var(--dim)"></span> Other 6%</li>
+            </ul>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Recent Activity <span>Live feed</span></h3>
+          <ul class="activity-list">
+            <li><span class="activity-dot" style="background:var(--green)"></span><span>Received 240x hex bolts</span><span class="activity-time">12m</span></li>
+            <li><span class="activity-dot" style="background:var(--blue)"></span><span>Order #4821 shipped</span><span class="activity-time">34m</span></li>
+            <li><span class="activity-dot" style="background:var(--yellow)"></span><span>Low stock: 3/8" washers</span><span class="activity-time">1h</span></li>
+            <li><span class="activity-dot" style="background:var(--green)"></span><span>PO #892 confirmed</span><span class="activity-time">2h</span></li>
+            <li><span class="activity-dot" style="background:var(--red)"></span><span>Stock out: silicone sealant</span><span class="activity-time">3h</span></li>
+            <li><span class="activity-dot" style="background:var(--accent)"></span><span>AI reorder suggestion</span><span class="activity-time">4h</span></li>
+          </ul>
+        </div>
       </div>
     </div>
 
-    <div class="table-card">
-      <div class="table-header">
-        <h3>Inventory Items</h3>
-        <input type="text" class="search" placeholder="Search SKU or name..." oninput="filterTable(this.value)">
+    <!-- INVENTORY TAB -->
+    <div class="tab-panel" id="panel-inventory">
+      <div class="table-card">
+        <div class="table-header">
+          <h3>All Inventory Items</h3>
+          <div class="table-controls">
+            <input type="text" class="search" placeholder="Search SKU or name..." oninput="filterTable(this.value)">
+            <button class="filter-btn">Category ▾</button>
+            <button class="filter-btn">Status ▾</button>
+          </div>
+        </div>
+        <table><thead><tr><th>SKU</th><th>Item</th><th>Category</th><th>Qty</th><th>Status</th><th>Stock Level</th><th>Reorder</th></tr></thead>
+        <tbody id="tableBody"></tbody></table>
       </div>
-      <table id="invTable">
-        <thead>
-          <tr><th>SKU</th><th>Item</th><th>Category</th><th>Qty</th><th>Status</th><th>Stock Level</th></tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
     </div>
 
-    <div class="footer">Built by Jon Harris — Inventory management with real warehouse experience</div>
+    <!-- SHIPMENTS TAB -->
+    <div class="tab-panel" id="panel-shipments">
+      <div class="shipment-cards">
+        <div class="ship-card">
+          <h4>Purolator Express</h4><div class="ship-id">PUR-2026-4821</div>
+          <span class="ship-status transit">In Transit</span>
+          <div class="ship-detail">Toronto → Vancouver<br>Est. delivery: April 19</div>
+          <div class="ship-bar"><div class="ship-bar-fill" style="width:65%;background:var(--blue)"></div></div>
+        </div>
+        <div class="ship-card">
+          <h4>Canada Post Priority</h4><div class="ship-id">CP-2026-3390</div>
+          <span class="ship-status delivered">Delivered</span>
+          <div class="ship-detail">Montreal → Calgary<br>Delivered: April 16</div>
+          <div class="ship-bar"><div class="ship-bar-fill" style="width:100%;background:var(--green)"></div></div>
+        </div>
+        <div class="ship-card">
+          <h4>UPS Ground</h4><div class="ship-id">UPS-2026-7712</div>
+          <span class="ship-status pending">Pending Pickup</span>
+          <div class="ship-detail">Hamilton warehouse<br>Pickup scheduled: April 18</div>
+          <div class="ship-bar"><div class="ship-bar-fill" style="width:15%;background:var(--yellow)"></div></div>
+        </div>
+        <div class="ship-card">
+          <h4>FedEx Freight</h4><div class="ship-id">FDX-2026-1155</div>
+          <span class="ship-status transit">In Transit</span>
+          <div class="ship-detail">Windsor → Ottawa<br>Est. delivery: April 20</div>
+          <div class="ship-bar"><div class="ship-bar-fill" style="width:40%;background:var(--blue)"></div></div>
+        </div>
+        <div class="ship-card">
+          <h4>Purolator Ground</h4><div class="ship-id">PUR-2026-4830</div>
+          <span class="ship-status delivered">Delivered</span>
+          <div class="ship-detail">Toronto → London ON<br>Delivered: April 15</div>
+          <div class="ship-bar"><div class="ship-bar-fill" style="width:100%;background:var(--green)"></div></div>
+        </div>
+        <div class="ship-card">
+          <h4>Canada Post Xpresspost</h4><div class="ship-id">CP-2026-3401</div>
+          <span class="ship-status transit">In Transit</span>
+          <div class="ship-detail">Winnipeg → Edmonton<br>Est. delivery: April 18</div>
+          <div class="ship-bar"><div class="ship-bar-fill" style="width:80%;background:var(--blue)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUPPLIERS TAB -->
+    <div class="tab-panel" id="panel-suppliers">
+      <div class="supplier-grid">
+        <div class="sup-card">
+          <h4>FastenerCo</h4><div class="sup-type">Fasteners & Hardware</div>
+          <div class="sup-stat"><span>Active SKUs</span><span class="val">342</span></div>
+          <div class="sup-stat"><span>Avg Lead Time</span><span class="val">3.2 days</span></div>
+          <div class="sup-stat"><span>On-Time Rate</span><span class="val" style="color:var(--green)">94%</span></div>
+          <div class="sup-stat"><span>Rating</span><span class="val sup-rating">★★★★☆</span></div>
+        </div>
+        <div class="sup-card">
+          <h4>WeldSupply Canada</h4><div class="sup-type">Welding Consumables</div>
+          <div class="sup-stat"><span>Active SKUs</span><span class="val">128</span></div>
+          <div class="sup-stat"><span>Avg Lead Time</span><span class="val">5.1 days</span></div>
+          <div class="sup-stat"><span>On-Time Rate</span><span class="val" style="color:var(--yellow)">82%</span></div>
+          <div class="sup-stat"><span>Rating</span><span class="val sup-rating">★★★☆☆</span></div>
+        </div>
+        <div class="sup-card">
+          <h4>SafetyFirst PPE</h4><div class="sup-type">Personal Protective Equipment</div>
+          <div class="sup-stat"><span>Active SKUs</span><span class="val">89</span></div>
+          <div class="sup-stat"><span>Avg Lead Time</span><span class="val">2.8 days</span></div>
+          <div class="sup-stat"><span>On-Time Rate</span><span class="val" style="color:var(--green)">97%</span></div>
+          <div class="sup-stat"><span>Rating</span><span class="val sup-rating">★★★★★</span></div>
+        </div>
+        <div class="sup-card">
+          <h4>FluidTech Inc.</h4><div class="sup-type">Hydraulic & Industrial Fluids</div>
+          <div class="sup-stat"><span>Active SKUs</span><span class="val">56</span></div>
+          <div class="sup-stat"><span>Avg Lead Time</span><span class="val">4.5 days</span></div>
+          <div class="sup-stat"><span>On-Time Rate</span><span class="val" style="color:var(--green)">91%</span></div>
+          <div class="sup-stat"><span>Rating</span><span class="val sup-rating">★★★★☆</span></div>
+        </div>
+        <div class="sup-card">
+          <h4>AbrasivePro</h4><div class="sup-type">Cutting & Grinding Supplies</div>
+          <div class="sup-stat"><span>Active SKUs</span><span class="val">67</span></div>
+          <div class="sup-stat"><span>Avg Lead Time</span><span class="val">3.8 days</span></div>
+          <div class="sup-stat"><span>On-Time Rate</span><span class="val" style="color:var(--green)">93%</span></div>
+          <div class="sup-stat"><span>Rating</span><span class="val sup-rating">★★★★☆</span></div>
+        </div>
+        <div class="sup-card">
+          <h4>PackShip Solutions</h4><div class="sup-type">Shipping & Packaging</div>
+          <div class="sup-stat"><span>Active SKUs</span><span class="val">34</span></div>
+          <div class="sup-stat"><span>Avg Lead Time</span><span class="val">1.5 days</span></div>
+          <div class="sup-stat"><span>On-Time Rate</span><span class="val" style="color:var(--green)">98%</span></div>
+          <div class="sup-stat"><span>Rating</span><span class="val sup-rating">★★★★★</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Built by Jon Harris — Inventory management built with real warehouse experience</div>
   </div>
 </div>
 
@@ -180,64 +347,63 @@ document.getElementById('currentDate').textContent = new Date().toLocaleDateStri
   weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 });
 
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
 const items = [
-  { sku: 'RW-1001', name: 'Hex Bolt M8x40', cat: 'Fasteners', qty: 2450, max: 3000 },
-  { sku: 'RW-1002', name: '3/8" Flat Washer', cat: 'Fasteners', qty: 14, max: 500 },
-  { sku: 'RW-1003', name: 'Purolator Air Filter PA4839', cat: 'Filters', qty: 89, max: 200 },
-  { sku: 'RW-1004', name: 'Silicone Sealant 10oz', cat: 'Adhesives', qty: 0, max: 100 },
-  { sku: 'RW-1005', name: 'Welding Rod 7018 1/8"', cat: 'Welding', qty: 340, max: 500 },
-  { sku: 'RW-1006', name: 'Safety Glasses Clear', cat: 'PPE', qty: 156, max: 200 },
-  { sku: 'RW-1007', name: 'Cut-Off Disc 4.5"', cat: 'Abrasives', qty: 23, max: 150 },
-  { sku: 'RW-1008', name: 'Hydraulic Oil ISO 46 20L', cat: 'Fluids', qty: 8, max: 30 },
-  { sku: 'RW-1009', name: 'Pallet Wrap 18" 80ga', cat: 'Shipping', qty: 45, max: 60 },
-  { sku: 'RW-1010', name: 'Forklift Propane Tank', cat: 'Equipment', qty: 6, max: 12 },
-  { sku: 'RW-1011', name: 'Cable Tie 12" Black', cat: 'Electrical', qty: 1200, max: 2000 },
-  { sku: 'RW-1012', name: 'Shop Towel Roll Blue', cat: 'Cleaning', qty: 3, max: 50 },
+  { sku:'RW-1001', name:'Hex Bolt M8x40', cat:'Fasteners', qty:2450, max:3000 },
+  { sku:'RW-1002', name:'3/8" Flat Washer', cat:'Fasteners', qty:14, max:500 },
+  { sku:'RW-1003', name:'Purolator Air Filter PA4839', cat:'Filters', qty:89, max:200 },
+  { sku:'RW-1004', name:'Silicone Sealant 10oz', cat:'Adhesives', qty:0, max:100 },
+  { sku:'RW-1005', name:'Welding Rod 7018 1/8"', cat:'Welding', qty:340, max:500 },
+  { sku:'RW-1006', name:'Safety Glasses Clear', cat:'PPE', qty:156, max:200 },
+  { sku:'RW-1007', name:'Cut-Off Disc 4.5"', cat:'Abrasives', qty:23, max:150 },
+  { sku:'RW-1008', name:'Hydraulic Oil ISO 46 20L', cat:'Fluids', qty:8, max:30 },
+  { sku:'RW-1009', name:'Pallet Wrap 18" 80ga', cat:'Shipping', qty:45, max:60 },
+  { sku:'RW-1010', name:'Forklift Propane Tank', cat:'Equipment', qty:6, max:12 },
+  { sku:'RW-1011', name:'Cable Tie 12" Black', cat:'Electrical', qty:1200, max:2000 },
+  { sku:'RW-1012', name:'Shop Towel Roll Blue', cat:'Cleaning', qty:3, max:50 },
+  { sku:'RW-1013', name:'Steel Pipe 1" Schedule 40', cat:'Steel', qty:42, max:100 },
+  { sku:'RW-1014', name:'Grinding Disc 7"', cat:'Abrasives', qty:67, max:100 },
+  { sku:'RW-1015', name:'Nitrile Gloves XL (box)', cat:'PPE', qty:18, max:80 },
 ];
 
 function getStatus(qty, max) {
   const pct = qty / max;
-  if (qty === 0) return { label: 'Out of Stock', cls: 'out' };
-  if (pct <= 0.1) return { label: 'Critical', cls: 'critical' };
-  if (pct <= 0.25) return { label: 'Low Stock', cls: 'low' };
-  return { label: 'In Stock', cls: 'in-stock' };
+  if (qty === 0) return { label:'Out of Stock', cls:'out' };
+  if (pct <= 0.1) return { label:'Critical', cls:'critical' };
+  if (pct <= 0.25) return { label:'Low Stock', cls:'low' };
+  return { label:'In Stock', cls:'in-stock' };
 }
 
 function renderTable(filter = '') {
   const tbody = document.getElementById('tableBody');
-  const filtered = items.filter(i =>
-    i.sku.toLowerCase().includes(filter) || i.name.toLowerCase().includes(filter)
-  );
+  const filtered = items.filter(i => i.sku.toLowerCase().includes(filter) || i.name.toLowerCase().includes(filter));
   tbody.innerHTML = filtered.map(i => {
     const s = getStatus(i.qty, i.max);
     const pct = Math.round((i.qty / i.max) * 100);
-    const color = s.cls === 'in-stock' ? 'var(--green)' : s.cls === 'low' ? 'var(--yellow)' : 'var(--red)';
+    const color = s.cls==='in-stock' ? 'var(--green)' : s.cls==='low' ? 'var(--yellow)' : 'var(--red)';
+    const reorder = s.cls !== 'in-stock' ? '<span style="color:var(--accent);cursor:pointer">Reorder →</span>' : '—';
     return `<tr>
-      <td class="sku">${i.sku}</td>
-      <td>${i.name}</td>
-      <td>${i.cat}</td>
-      <td>${i.qty.toLocaleString()}</td>
-      <td><span class="badge ${s.cls}">${s.label}</span></td>
-      <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div></td>
-    </tr>`;
+      <td class="sku">${i.sku}</td><td>${i.name}</td><td>${i.cat}</td>
+      <td>${i.qty.toLocaleString()}</td><td><span class="badge ${s.cls}">${s.label}</span></td>
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div></td>
+      <td>${reorder}</td></tr>`;
   }).join('');
 }
-
 function filterTable(val) { renderTable(val.toLowerCase()); }
 renderTable();
 
-// Bar chart
 const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const vals = [14,22,18,25,31,12,8];
 const maxV = Math.max(...vals);
-const chart = document.getElementById('barChart');
-chart.innerHTML = days.map((d,i) =>
-  `<div class="bar-col">
-    <div class="bar" style="height:${(vals[i]/maxV)*100}%;background:${i===4?'var(--accent)':'rgba(108,99,255,0.3)'}"></div>
-    <div class="bar-label">${d}</div>
-  </div>`
+document.getElementById('barChart').innerHTML = days.map((d,i) =>
+  `<div class="bar-col"><div class="bar" style="height:${(vals[i]/maxV)*100}%;background:${i===4?'var(--accent)':'rgba(108,99,255,0.3)'}"></div><div class="bar-label">${d}</div></div>`
 ).join('');
 </script>
-
 </body>
 </html>

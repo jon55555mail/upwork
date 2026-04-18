@@ -5,32 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Chatbot Widget — Jon Harris</title>
 <style>
-  :root { --bg: #f5f5f5; --card: #fff; --accent: #6c63ff; --text: #333; --dim: #777; }
+  :root { --bg: #f7f8fc; --card: #fff; --accent: #6c63ff; --accent2: #00c9a7; --orange: #ff8c42;
+          --red: #ff4757; --text: #2d3436; --dim: #888; --border: #e8ecf1; --dark: #1a1a2e; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
 
-  /* Demo page behind the widget */
-  .demo-page { max-width: 800px; margin: 40px auto; padding: 20px; }
-  .demo-page h1 { font-size: 32px; margin-bottom: 12px; }
-  .demo-page p { color: var(--dim); line-height: 1.7; margin-bottom: 16px; }
-  .demo-box { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-              margin-bottom: 20px; }
-  .demo-box h2 { font-size: 18px; margin-bottom: 8px; }
+  .top-nav { background: #fff; border-bottom: 1px solid var(--border); padding: 0 30px;
+             display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .top-nav .logo { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .top-nav .nav-links { display: flex; gap: 24px; }
+  .top-nav .nav-links a { text-decoration: none; font-size: 13px; color: var(--dim); font-weight: 500; }
+  .top-nav .nav-links a.active { color: var(--accent); }
 
-  /* Chat widget */
-  .chat-toggle { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px;
-                 border-radius: 50%; background: var(--accent); color: #fff; border: none;
-                 font-size: 26px; cursor: pointer; box-shadow: 0 4px 20px rgba(108,99,255,0.4);
-                 transition: all 0.3s; z-index: 1000; }
-  .chat-toggle:hover { transform: scale(1.1); }
-  .chat-toggle.open { border-radius: 12px; }
+  .tabs { display: flex; background: #fff; border-bottom: 1px solid var(--border); padding: 0 30px; }
+  .tab { padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--dim); cursor: pointer;
+         border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 
-  .chat-window { position: fixed; bottom: 96px; right: 24px; width: 380px; height: 520px;
-                 background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.15);
-                 display: none; flex-direction: column; overflow: hidden; z-index: 1000;
-                 border: 1px solid #e0e0e0; }
-  .chat-window.open { display: flex; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
 
+  /* Demo Tab */
+  .demo-layout { display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
+  .demo-site { background: #fff; border-radius: 14px; padding: 30px; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+               border: 1px solid var(--border); }
+  .demo-site h1 { font-size: 28px; margin-bottom: 8px; color: var(--text); }
+  .demo-site p { color: var(--dim); line-height: 1.7; margin-bottom: 16px; font-size: 14px; }
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .feature-item { background: var(--bg); border-radius: 10px; padding: 14px; border: 1px solid var(--border); }
+  .feature-item h4 { font-size: 13px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .feature-item p { font-size: 11px; color: var(--dim); }
+
+  /* Chat widget in demo */
+  .chat-preview { background: var(--bg); border-radius: 14px; padding: 16px;
+                  border: 1px solid var(--border); }
+  .chat-preview h3 { font-size: 13px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px;
+                     margin-bottom: 12px; }
+
+  .chat-window { width: 100%; height: 460px; background: #fff; border-radius: 16px;
+                 box-shadow: 0 8px 30px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+                 overflow: hidden; border: 1px solid #e0e0e0; }
   .chat-header { background: linear-gradient(135deg, #6c63ff, #4a45b0); color: #fff;
                  padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
   .chat-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.2);
@@ -39,112 +55,315 @@
   .chat-header-text span { font-size: 11px; opacity: 0.8; }
   .chat-status { width: 8px; height: 8px; background: #00d4aa; border-radius: 50%;
                  display: inline-block; margin-left: 4px; }
-
   .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column;
                    gap: 10px; background: #fafafa; }
-  .msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5;
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5;
          animation: fadeIn 0.3s ease; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
   .msg.bot { background: #fff; border: 1px solid #eee; align-self: flex-start;
              border-bottom-left-radius: 4px; }
   .msg.user { background: var(--accent); color: #fff; align-self: flex-end;
               border-bottom-right-radius: 4px; }
   .msg.typing { color: var(--dim); font-style: italic; }
-
+  .quick-replies { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .quick-reply { background: #f0eeff; color: var(--accent); border: 1px solid #ddd; border-radius: 16px;
+                 padding: 5px 12px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+  .quick-reply:hover { background: var(--accent); color: #fff; }
   .chat-input { display: flex; padding: 12px; background: #fff; border-top: 1px solid #eee; gap: 8px; }
   .chat-input input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px;
                       font-size: 13px; outline: none; }
   .chat-input input:focus { border-color: var(--accent); }
   .chat-input button { width: 38px; height: 38px; border-radius: 50%; background: var(--accent);
                        color: #fff; border: none; cursor: pointer; font-size: 16px; }
-  .chat-input button:hover { background: #5a52e0; }
-
-  .quick-replies { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-  .quick-reply { background: #f0eeff; color: var(--accent); border: 1px solid #ddd; border-radius: 16px;
-                 padding: 5px 12px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
-  .quick-reply:hover { background: var(--accent); color: #fff; }
-
   .powered { text-align: center; padding: 6px; font-size: 10px; color: #bbb; background: #fff; }
+
+  /* Customize Tab */
+  .custom-grid { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+  .custom-panel { background: #fff; border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+  .custom-panel h3 { font-size: 14px; margin-bottom: 16px; color: var(--text); }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+                      color: var(--dim); margin-bottom: 6px; }
+  .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+                                           border-radius: 8px; font-size: 13px; }
+  .color-row { display: flex; gap: 8px; }
+  .color-swatch { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;
+                  transition: all 0.2s; }
+  .color-swatch.active { border-color: var(--text); transform: scale(1.1); }
+  .preview-label { font-size: 11px; color: var(--dim); margin-bottom: 8px; text-transform: uppercase;
+                   letter-spacing: 1px; }
+
+  /* Analytics Tab */
+  .analytics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .stat-card .val { font-size: 28px; font-weight: 700; }
+  .stat-card .label { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px;
+                      margin-top: 4px; }
+  .stat-card .change { font-size: 12px; margin-top: 6px; }
+  .stat-card .change.up { color: var(--accent2); }
+  .chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .chart-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .chart-card h3 { font-size: 14px; margin-bottom: 16px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; }
+  .bar-lbl { font-size: 10px; color: var(--dim); }
+  .intent-list { list-style: none; }
+  .intent-list li { display: flex; justify-content: space-between; padding: 10px 0;
+                    border-bottom: 1px solid var(--border); font-size: 13px; }
+  .intent-list li:last-child { border: none; }
+  .intent-pct { font-weight: 600; color: var(--accent); }
+
+  /* Embed Tab */
+  .embed-section { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 24px;
+                   margin-bottom: 16px; }
+  .embed-section h3 { font-size: 15px; margin-bottom: 12px; }
+  .embed-section p { font-size: 13px; color: var(--dim); line-height: 1.6; margin-bottom: 12px; }
+  .code-block { background: var(--dark); color: #a5d6a7; border-radius: 10px; padding: 16px; font-size: 12px;
+                font-family: 'Cascadia Code', monospace; overflow-x: auto; position: relative; }
+  .copy-btn { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1);
+              border: none; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 11px;
+              cursor: pointer; }
+  .provider-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  .prov-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center;
+               cursor: pointer; transition: all 0.2s; }
+  .prov-card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(108,99,255,0.1); }
+  .prov-card .prov-icon { font-size: 28px; margin-bottom: 8px; }
+  .prov-card .prov-name { font-size: 13px; font-weight: 600; }
+  .prov-card .prov-desc { font-size: 11px; color: var(--dim); margin-top: 4px; }
+
+  .footer { text-align: center; padding: 24px; color: var(--dim); font-size: 11px;
+            border-top: 1px solid var(--border); margin-top: 20px; }
+  @media (max-width: 800px) { .demo-layout, .custom-grid, .chart-row { grid-template-columns: 1fr; }
+    .analytics-grid { grid-template-columns: repeat(2,1fr); } .provider-cards { grid-template-columns: repeat(2,1fr); } }
 </style>
 </head>
 <body>
 
-<!-- Demo website behind the widget -->
-<div class="demo-page">
-  <h1>Acme Business Solutions</h1>
-  <p>This is a demo website showing the AI chatbot widget embedded on a client's page.
-     Click the chat bubble in the bottom-right corner to interact with the assistant.</p>
-  <div class="demo-box">
-    <h2>About Our Services</h2>
-    <p>We provide enterprise solutions for growing businesses. Our AI-powered tools help you
-       automate workflows, manage inventory, and streamline operations.</p>
-  </div>
-  <div class="demo-box">
-    <h2>How the Widget Works</h2>
-    <p>This embeddable chatbot widget connects to any LLM backend (Claude, GPT, Gemini, or self-hosted Ollama).
-       It includes conversation memory, quick reply buttons, typing indicators, and full customization of
-       brand colors, avatar, and personality. One line of JavaScript to embed on any website.</p>
-  </div>
-  <div class="demo-box">
-    <h2>Features</h2>
-    <p>Custom personality prompts / Multi-provider LLM support / Typing animation /
-       Quick reply suggestions / Mobile responsive / Brand color customization /
-       Conversation history / One-line embed code</p>
+<div class="top-nav">
+  <div class="logo">ChatFlow AI</div>
+  <div class="nav-links">
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Bots</a>
+    <a href="#">Integrations</a>
+    <a href="#">Billing</a>
   </div>
 </div>
 
-<!-- Chat toggle button -->
-<button class="chat-toggle" id="chatToggle" onclick="toggleChat()">💬</button>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('demo')">Live Demo</div>
+  <div class="tab" onclick="switchTab('customize')">Customize</div>
+  <div class="tab" onclick="switchTab('analytics')">Analytics</div>
+  <div class="tab" onclick="switchTab('embed')">Embed Code</div>
+</div>
 
-<!-- Chat window -->
-<div class="chat-window" id="chatWindow">
-  <div class="chat-header">
-    <div class="chat-avatar">🤖</div>
-    <div class="chat-header-text">
-      <h4>Acme Assistant <span class="chat-status"></span></h4>
-      <span>Powered by AI — always online</span>
+<div class="tab-panel active" id="panel-demo">
+<div class="container">
+  <div class="demo-layout">
+    <div class="demo-site">
+      <h1>Acme Business Solutions</h1>
+      <p>This demo shows the AI chatbot widget embedded on a client's website. The widget connects to any LLM backend and provides 24/7 intelligent customer support.</p>
+      <div class="feature-grid">
+        <div class="feature-item"><h4>💬 Smart Replies</h4><p>Intent-based response routing with NLP</p></div>
+        <div class="feature-item"><h4>⚡ Quick Actions</h4><p>One-tap buttons for common queries</p></div>
+        <div class="feature-item"><h4>🎨 Brand Colors</h4><p>Full customization of every element</p></div>
+        <div class="feature-item"><h4>🤖 Multi-Model</h4><p>Claude, GPT-4, Gemini, or Ollama</p></div>
+        <div class="feature-item"><h4>📱 Mobile Ready</h4><p>Responsive on all screen sizes</p></div>
+        <div class="feature-item"><h4>💾 Memory</h4><p>Persistent conversation history</p></div>
+        <div class="feature-item"><h4>⌨️ Typing FX</h4><p>Natural typing indicators</p></div>
+        <div class="feature-item"><h4>📊 Analytics</h4><p>Track conversations and intents</p></div>
+      </div>
     </div>
-  </div>
-  <div class="chat-messages" id="chatMessages">
-    <div class="msg bot">
-      Hi! I'm the Acme assistant. I can help you with our services, pricing, and support. What can I help you with today?
-      <div class="quick-replies">
-        <span class="quick-reply" onclick="sendQuick('What services do you offer?')">Services</span>
-        <span class="quick-reply" onclick="sendQuick('How much does it cost?')">Pricing</span>
-        <span class="quick-reply" onclick="sendQuick('I need technical support')">Support</span>
+    <div class="chat-preview">
+      <h3>Widget Preview</h3>
+      <div class="chat-window">
+        <div class="chat-header">
+          <div class="chat-avatar">🤖</div>
+          <div class="chat-header-text">
+            <h4>Acme Assistant <span class="chat-status"></span></h4>
+            <span>Powered by AI — always online</span>
+          </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg bot">
+            Hi! I'm the Acme assistant. How can I help you today?
+            <div class="quick-replies">
+              <span class="quick-reply" onclick="sendQuick('What services do you offer?')">Services</span>
+              <span class="quick-reply" onclick="sendQuick('How much does it cost?')">Pricing</span>
+              <span class="quick-reply" onclick="sendQuick('I need technical support')">Support</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendMsg()">
+          <button onclick="sendMsg()">➤</button>
+        </div>
+        <div class="powered">Built by Jon Harris — jonharris.dev</div>
       </div>
     </div>
   </div>
-  <div class="chat-input">
-    <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendMsg()">
-    <button onclick="sendMsg()">➤</button>
-  </div>
-  <div class="powered">Built by Jon Harris — jonharris.dev</div>
+</div>
 </div>
 
+<div class="tab-panel" id="panel-customize">
+<div class="container">
+  <div class="custom-grid">
+    <div class="custom-panel">
+      <h3>Widget Settings</h3>
+      <div class="form-group">
+        <label>Bot Name</label>
+        <input type="text" value="Acme Assistant">
+      </div>
+      <div class="form-group">
+        <label>Welcome Message</label>
+        <input type="text" value="Hi! How can I help you today?">
+      </div>
+      <div class="form-group">
+        <label>AI Model</label>
+        <select><option>Claude Sonnet</option><option>GPT-4o</option><option>Gemini Flash</option><option>Ollama (Local)</option></select>
+      </div>
+      <div class="form-group">
+        <label>Brand Color</label>
+        <div class="color-row">
+          <div class="color-swatch active" style="background:#6c63ff"></div>
+          <div class="color-swatch" style="background:#00c9a7"></div>
+          <div class="color-swatch" style="background:#ff6b6b"></div>
+          <div class="color-swatch" style="background:#ffa502"></div>
+          <div class="color-swatch" style="background:#2d3436"></div>
+          <div class="color-swatch" style="background:#0984e3"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Position</label>
+        <select><option>Bottom Right</option><option>Bottom Left</option></select>
+      </div>
+      <div class="form-group">
+        <label>Personality Prompt</label>
+        <input type="text" value="You are a friendly customer support agent for Acme...">
+      </div>
+      <div class="form-group">
+        <label>Quick Reply Buttons</label>
+        <input type="text" value="Services, Pricing, Support, Demo">
+      </div>
+    </div>
+    <div>
+      <div class="preview-label">Live Preview</div>
+      <div style="background:#f0f0f0;border-radius:14px;padding:20px;height:500px;display:flex;align-items:flex-end;justify-content:flex-end;position:relative;border:1px solid var(--border)">
+        <div style="position:absolute;top:20px;left:20px;font-size:12px;color:#999">example-client-website.com</div>
+        <div style="position:absolute;top:50px;left:20px;right:20px">
+          <div style="height:16px;width:60%;background:#ddd;border-radius:4px;margin-bottom:8px"></div>
+          <div style="height:12px;width:80%;background:#e5e5e5;border-radius:4px;margin-bottom:6px"></div>
+          <div style="height:12px;width:70%;background:#e5e5e5;border-radius:4px;margin-bottom:6px"></div>
+          <div style="height:12px;width:45%;background:#e5e5e5;border-radius:4px"></div>
+          <div style="height:120px;width:100%;background:#e8e8e8;border-radius:8px;margin-top:16px"></div>
+        </div>
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;box-shadow:0 4px 20px rgba(108,99,255,0.4)">💬</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="tab-panel" id="panel-analytics">
+<div class="container">
+  <div class="analytics-grid">
+    <div class="stat-card"><div class="val" style="color:var(--accent)">1,247</div><div class="label">Total Conversations</div><div class="change up">↑ 18% this week</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--accent2)">89%</div><div class="label">Resolution Rate</div><div class="change up">↑ 3% vs last month</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--orange)">1.8s</div><div class="label">Avg Response Time</div><div class="change up">↑ faster by 0.3s</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--accent)">4.6</div><div class="label">Satisfaction Score</div><div class="change up">↑ 0.2 points</div></div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-card">
+      <h3>Daily Conversations</h3>
+      <div class="bar-chart" id="convChart"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Top Intents</h3>
+      <ul class="intent-list">
+        <li><span>Pricing inquiries</span><span class="intent-pct">32%</span></li>
+        <li><span>Service questions</span><span class="intent-pct">24%</span></li>
+        <li><span>Technical support</span><span class="intent-pct">19%</span></li>
+        <li><span>Demo requests</span><span class="intent-pct">14%</span></li>
+        <li><span>General greeting</span><span class="intent-pct">8%</span></li>
+        <li><span>Other</span><span class="intent-pct">3%</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="tab-panel" id="panel-embed">
+<div class="container">
+  <div class="embed-section">
+    <h3>One-Line Embed</h3>
+    <p>Add this single line to your website's HTML to deploy the chatbot instantly:</p>
+    <div class="code-block">
+      <button class="copy-btn" onclick="this.textContent='Copied!'">Copy</button>
+      &lt;script src="https://cdn.chatflow.ai/widget.js" data-bot="acme-123" data-color="#6c63ff"&gt;&lt;/script&gt;
+    </div>
+  </div>
+  <div class="embed-section">
+    <h3>Advanced Configuration</h3>
+    <p>Full control over widget behavior, appearance, and AI model:</p>
+    <div class="code-block">
+      <button class="copy-btn" onclick="this.textContent='Copied!'">Copy</button>
+&lt;script&gt;
+  ChatFlow.init({
+    botId: 'acme-123',
+    model: 'claude-sonnet',
+    color: '#6c63ff',
+    position: 'bottom-right',
+    greeting: 'Hi! How can I help?',
+    quickReplies: ['Services', 'Pricing', 'Support'],
+    personality: 'friendly customer support agent',
+    memory: true,
+    analytics: true
+  });
+&lt;/script&gt;
+    </div>
+  </div>
+  <div class="embed-section">
+    <h3>Supported AI Providers</h3>
+    <div class="provider-cards">
+      <div class="prov-card"><div class="prov-icon">🟣</div><div class="prov-name">Claude</div><div class="prov-desc">Best for analysis & long-form</div></div>
+      <div class="prov-card"><div class="prov-icon">🟢</div><div class="prov-name">GPT-4o</div><div class="prov-desc">Fast, broad knowledge</div></div>
+      <div class="prov-card"><div class="prov-icon">🔵</div><div class="prov-name">Gemini</div><div class="prov-desc">Multi-modal, cost-effective</div></div>
+      <div class="prov-card"><div class="prov-icon">⚫</div><div class="prov-name">Ollama</div><div class="prov-desc">Self-hosted, private</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="footer">Built by Jon Harris — Embeddable AI chatbot widget · Multi-provider · One-line deploy</div>
+
 <script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+// Analytics bar chart
+const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const vals = [34,42,38,55,61,28,22,45,52,48,63,71,32,18];
+const mx = Math.max(...vals);
+const ch = document.getElementById('convChart');
+if(ch) ch.innerHTML = days.map((d,i) =>
+  `<div class="bar-col"><div class="bar" style="height:${(vals[i]/mx)*100}%;background:${vals[i]===mx?'var(--accent)':'rgba(108,99,255,0.25)'}"></div><div class="bar-lbl">${d}</div></div>`
+).join('');
+
+// Chat
 const responses = {
   'services': 'We offer three main solutions:\n\n1. **Inventory Management** — AI-powered stock tracking\n2. **Workflow Automation** — Connect your tools with smart triggers\n3. **Custom AI Agents** — Built-to-order intelligent assistants\n\nWhich interests you most?',
-  'pricing': 'Our plans start at $49/month for small teams:\n\n• **Starter** — $49/mo (up to 5 users)\n• **Growth** — $149/mo (up to 25 users)\n• **Enterprise** — Custom pricing\n\nAll plans include a 14-day free trial. Want me to help you pick the right one?',
-  'support': 'I can help with common issues! What are you experiencing?\n\n• Account access problems\n• Integration setup\n• Billing questions\n• Bug reports\n\nOr describe your issue and I\'ll route you to the right team.',
-  'demo': 'I\'d love to set up a demo! We offer 30-minute walkthroughs customized to your industry. What\'s the best email to reach you at?',
-  'hours': 'I\'m available 24/7! For human support, our team is online Monday–Friday, 9am–6pm EST. But I can handle most questions right now.',
-  'default': null
+  'pricing': 'Our plans start at $49/month:\n\n• **Starter** — $49/mo (up to 5 users)\n• **Growth** — $149/mo (up to 25 users)\n• **Enterprise** — Custom pricing\n\nAll include a 14-day free trial!',
+  'support': 'I can help with common issues! What are you experiencing?\n\n• Account access\n• Integration setup\n• Billing questions\n• Bug reports',
 };
-
 const fallbacks = [
-  'That\'s a great question! Let me connect you with our team for a detailed answer. In the meantime, is there anything else I can help with?',
-  'I want to make sure I give you the right information on that. Can you tell me a bit more about what you\'re looking for?',
-  'I appreciate you asking! That\'s something our specialists handle best. Want me to schedule a quick call with them?',
-  'Interesting question! While I don\'t have specifics on that, I can help with our services, pricing, or support. What sounds useful?'
+  'Great question! Let me connect you with our team for details. Anything else I can help with?',
+  'I want to give you the right info. Can you tell me more about what you need?',
+  'Our specialists handle that best. Want me to schedule a quick call?',
 ];
-
-function toggleChat() {
-  const w = document.getElementById('chatWindow');
-  const b = document.getElementById('chatToggle');
-  w.classList.toggle('open');
-  b.textContent = w.classList.contains('open') ? '✕' : '💬';
-}
 
 function addMsg(text, type) {
   const div = document.createElement('div');
@@ -154,48 +373,31 @@ function addMsg(text, type) {
   document.getElementById('chatMessages').scrollTop = 99999;
   return div;
 }
-
-function sendQuick(text) {
-  document.getElementById('chatInput').value = text;
-  sendMsg();
-}
-
+function sendQuick(text) { document.getElementById('chatInput').value = text; sendMsg(); }
 function sendMsg() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-
   addMsg(text, 'user');
-
-  // Show typing
   const typing = addMsg('Typing...', 'bot typing');
-
   setTimeout(() => {
     typing.remove();
     const lower = text.toLowerCase();
     let reply;
-    if (lower.includes('service') || lower.includes('offer') || lower.includes('what do you')) {
-      reply = responses.services;
-    } else if (lower.includes('price') || lower.includes('cost') || lower.includes('plan')) {
-      reply = responses.pricing;
-    } else if (lower.includes('support') || lower.includes('help') || lower.includes('issue') || lower.includes('problem')) {
-      reply = responses.support;
-    } else if (lower.includes('demo') || lower.includes('trial') || lower.includes('try')) {
-      reply = responses.demo;
-    } else if (lower.includes('hour') || lower.includes('available') || lower.includes('open')) {
-      reply = responses.hours;
-    } else if (lower.includes('hi') || lower.includes('hello') || lower.includes('hey')) {
-      reply = 'Hello! Welcome to Acme. How can I help you today? I can tell you about our services, pricing, or help with support.';
-    } else if (lower.includes('thank')) {
-      reply = 'You\'re welcome! Is there anything else I can help you with?';
-    } else {
-      reply = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-    }
+    if (lower.includes('service') || lower.includes('offer')) reply = responses.services;
+    else if (lower.includes('price') || lower.includes('cost')) reply = responses.pricing;
+    else if (lower.includes('support') || lower.includes('help')) reply = responses.support;
+    else if (lower.includes('hi') || lower.includes('hello')) reply = 'Hello! Welcome to Acme. How can I help?';
+    else if (lower.includes('thank')) reply = "You're welcome! Anything else?";
+    else reply = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     addMsg(reply, 'bot');
   }, 800 + Math.random() * 600);
 }
-</script>
 
+document.querySelectorAll('.color-swatch').forEach(s => {
+  s.onclick = () => { document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); };
+});
+</script>
 </body>
 </html>

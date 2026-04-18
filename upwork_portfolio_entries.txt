@@ -1,0 +1,70 @@
+================================================================
+UPWORK PORTFOLIO ENTRIES — READY TO PASTE
+================================================================
+GitHub Repo: https://github.com/jon55555mail/upwork
+
+================================================================
+PORTFOLIO ITEM 1: AI RESUME ANALYZER
+================================================================
+Title: AI Resume Analyzer — Keyword Match Scoring Tool
+Your Role: Full-Stack Developer & AI Engineer
+Skills: Python, JavaScript, AI Development, NLP, Web Application
+Project URL: https://github.com/jon55555mail/upwork/tree/main/resume-analyzer
+
+Description:
+Built a client-side AI resume analysis tool that scores resumes against job descriptions. Extracts and matches 100+ tech keywords, generates an animated match score, identifies missing skills, and provides actionable suggestions. Features color-coded confidence badges, responsive dark UI, and zero backend — runs entirely in the browser.
+
+================================================================
+PORTFOLIO ITEM 2: EMBEDDABLE AI CHATBOT WIDGET
+================================================================
+Title: AI Chatbot Widget — Embeddable Customer Assistant
+Your Role: Full-Stack Developer & AI Engineer
+Skills: JavaScript, AI Chatbot, UI/UX Design, API Integration, Web Development
+Project URL: https://github.com/jon55555mail/upwork/tree/main/chatbot-widget
+
+Description:
+Plug-and-play AI chatbot widget embeddable on any website. Features typing indicators, quick-reply buttons, intent routing, conversation memory, and full brand customization. Supports Claude, GPT-4, Gemini, and Ollama backends. One line of code to embed. Mobile-responsive with smooth animations. Built for 24/7 AI customer support.
+
+================================================================
+PORTFOLIO ITEM 3: INVENTORY MANAGEMENT DASHBOARD
+================================================================
+Title: Real-Time Inventory Dashboard — Warehouse Management
+Your Role: Full-Stack Developer
+Skills: JavaScript, Dashboard Design, Data Visualization, Inventory Management, UI/UX Design
+Project URL: https://github.com/jon55555mail/upwork/tree/main/inventory-dashboard
+
+Description:
+Full inventory management dashboard built from real warehouse experience. Sidebar navigation, 4 KPI cards, weekly shipment charts, live activity feed, and searchable inventory table with stock-level indicators. 12+ product categories with color-coded status badges. Based on a production logistics app I built for a real shipping business.
+
+================================================================
+PORTFOLIO ITEM 4: AI REPORT GENERATOR
+================================================================
+Title: AI Report Generator — Multi-Model Business Reports
+Your Role: Full-Stack Developer & AI Engineer
+Skills: Python, AI Development, Data Analysis, Report Generation, Business Intelligence
+Project URL: https://github.com/jon55555mail/upwork/tree/main/report-generator
+
+Description:
+AI-powered tool that transforms business data into formatted, actionable reports. Select data source, report type, and AI model (Claude, GPT-4, Gemini, Ollama). Animated progress steps, metric cards, prioritized findings with action items, and PDF/CSV/email export. Built for small business operators who need fast insights.
+
+================================================================
+PORTFOLIO ITEM 5: MULTI-AGENT RESEARCH BOT
+================================================================
+Title: Multi-Agent Research Bot — 6 AI Agents Orchestrated
+Your Role: AI Architect & Full-Stack Developer
+Skills: AI Development, Multi-Agent Systems, Python, LLM Integration, Prompt Engineering
+Project URL: https://github.com/jon55555mail/upwork/tree/main/research-bot
+
+Description:
+Multi-agent research system with 6 specialized AI agents: Scout, Analyst, Synthesizer, Verifier, Writer, and Director. Real-time status, progress bars, and source tracking per agent. Structured reports with confidence scores and citations. Same architecture powering my production research pipeline.
+
+================================================================
+HOW TO ADD ON UPWORK
+================================================================
+1. Profile > Portfolio > Add a project
+2. Fill Title, Role, Description (paste from above)
+3. Upload screenshot (download from GitHub repo folders)
+4. Add the 5 skill tags
+5. Paste the GitHub URL
+6. Click Publish
+7. Repeat for all 5
